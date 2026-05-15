@@ -20,6 +20,9 @@ export default function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadProducts()
   }, [])
+  
+  
+
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">

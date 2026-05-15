@@ -18,3 +18,11 @@ model Product {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model Sale {
+  id        Int      @id @default(autoincrement())
+  product   String
+  quantity  Int
+  total     Float
+  createdAt DateTime @default(now())
+}

@@ -15,3 +15,11 @@
 ## O que entendi hoje
 - Prisma gera um client automaticamente
 - O Node importa esse client usando @prisma/client
+- CRUD 
+    .Create -> Criar
+    .Read -> Ler
+    .Update -> Atualizar
+    .Delete -> Deletar
+
+
+## Dia 02

@@ -51,3 +51,71 @@ app.delete('/products/:id', async (req, res) => {
     message: 'Produto deletado',
   })
 })
+
+app.put('/products/:id', async (req, res) => {
+  const { id } = req.params
+
+  const { name, category, price, stock } = req.body
+
+  const product = await prisma.product.update({
+    where: {
+      id: Number(id),
+    },
+
+    data: {
+      name,
+      category,
+      price,
+      stock,
+    },
+  })
+
+  res.json(product)
+})
+
+app.post('/sales', async (request, response) => {
+
+  console.log(request.body)
+
+  const { productId, quantity } = request.body
+
+  const product = await prisma.product.findUnique({
+    where: {
+      id: productId,
+    },
+  })
+
+  if (!product) {
+    return response.status(404).json({
+      error: 'Produto não encontrado',
+    })
+  }
+
+  //Calcula o total, VALIDAÇÃO DE ESTOQUE
+  if (product.stock < quantity){
+    return response.status(400).json({
+      error:'Estoque insulficiente',
+    })
+  }
+
+  const total = product.price * quantity
+
+  const sale = await prisma.sale.create({
+    data: {
+      product: product.name,
+      quantity,
+      total,
+    },
+  })
+
+  await prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: {
+      stock: product.stock - quantity,
+    },
+  })
+
+  return response.status(201).json(sale)
+})
