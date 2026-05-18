@@ -37,10 +37,37 @@ export function ProductCard({
 
     onDeleted()
   }
-  
 
+  //FUNÇÃO PARA GERAR A VENDA DO PRODUTO
+  async function handleSale() {
+    try{
+      await axios.post(
+        'http://localhost:3333/sales',
+        {
+          productId: product.id,
+          quantity: 1,
+        }
+  )
+       onDeleted()
+       // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      alert('Estoque insulficiente')
+    }
+}
+
+const isOutOfStock = product.stock <= 0
+  
   return (
-    <div className="bg-white p-4 rounded-xl shadow">
+    <div 
+    className={
+      ` p-4 rounded-xl shadow transition-all
+      ${
+        isOutOfStock
+        ? 'bg-gray'
+        : 'bg-white'
+      } `
+    }
+    >
       <h2 className="text-xl font-bold">
         {product.name}
       </h2>
@@ -49,11 +76,17 @@ export function ProductCard({
         {product.category}
       </p>
 
-      <p className="mt-2 text-green-600 font-bold">
+      <p className="mt-2 text-green-600 font-bold"
+      >
         R$ {product.price}
+        {isOutOfStock && (
+          <p className='text-red-600 font-bold mt-2'>
+            ESGOTADO
+          </p>
+        )}
       </p>
 
-      <div className="flex items-center gap-4 mt-2">
+      <div className="flex items-center gap-4 mt-2 ">
         <button
           onClick={() => updateStock(product.stock - 1)}
           className="bg-red-500 text-white w-8 h-8 rounded cursor-pointer"
@@ -75,18 +108,26 @@ export function ProductCard({
 
       <button
         onClick={handleDeleteProduct}
-        className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer gap-4
-        "
+        className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
       >
         Deletar
       </button>
         
-    <button
-        onClick={handleSale}
-        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-        >
-        Vender
-    </button>
+      <button
+          onClick={handleSale}
+          disabled={isOutOfStock}
+          className={`
+            mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer
+            ${
+              isOutOfStock
+                ? 'bg-gray-500 cursor-not-allowed'
+                : 'bg-blue-600'
+            }
+            `}
+          
+          >
+          Vender
+      </button>
 
     </div>
   )

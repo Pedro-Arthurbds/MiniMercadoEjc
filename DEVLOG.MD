@@ -23,3 +23,7 @@
 
 
 ## Dia 02
+-Criação do button vendas
+-integraçao com a api 
+-Try/Catch para evitar do codgio quebrar
+-Status do estoque
