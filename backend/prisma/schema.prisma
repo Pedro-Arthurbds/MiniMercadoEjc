@@ -17,6 +17,8 @@ model Product {
   stock     Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  items CommandItem[]
 }
 
 model Sale {
@@ -25,4 +27,27 @@ model Sale {
   quantity  Int
   total     Float
   createdAt DateTime @default(now())
+}
+
+model Command {
+  id        Int           @id @default(autoincrement())
+  customer  String
+  total     Float         @default(0)
+  createdAt DateTime      @default(now())
+
+  items CommandItem[]
+
+  closed Boolean @default(false)
+  closedAt DateTime?
+}
+
+model CommandItem {
+  id        Int      @id @default(autoincrement())
+  quantity  Int
+
+  command   Command  @relation(fields: [commandId], references: [id])
+  commandId Int
+
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
 }

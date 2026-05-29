@@ -32,7 +32,7 @@ export default function App() {
 
       <ProductForm onProductCreated={loadProducts} />
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className=" grid grid-colos-1 md:grid-cols-2 lg:gid-cols-3 gap-6 ">
         {products.map(product => (
           <ProductCard
             key={product.id}

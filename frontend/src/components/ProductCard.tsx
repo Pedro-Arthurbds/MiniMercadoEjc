@@ -58,77 +58,87 @@ export function ProductCard({
 const isOutOfStock = product.stock <= 0
   
   return (
-    <div 
-    className={
-      ` p-4 rounded-xl shadow transition-all
+
+  <div
+    className={`
+      p-5 rounded-2xl shadow-md transition-all border
+      flex flex-col gap-4
       ${
         isOutOfStock
-        ? 'bg-gray'
-        : 'bg-white'
-      } `
-    }
-    >
-      <h2 className="text-xl font-bold">
+          ? 'bg-gray-200 border-gray-300'
+          : 'bg-white border-gray-100 hover:shadow-xl'
+      }
+    `}
+  >
+    <div>
+      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+        {product.category}
+      </span>
+
+      <h2 className="text-2xl font-bold mt-3">
         {product.name}
       </h2>
+    </div>
 
-      <p className="text-gray-500">
-        {product.category}
+    <div>
+      <p className="text-3xl font-bold text-green-600">
+        R$ {product.price}
       </p>
 
-      <p className="mt-2 text-green-600 font-bold"
-      >
-        R$ {product.price}
-        {isOutOfStock && (
-          <p className='text-red-600 font-bold mt-2'>
+      <p className="text-gray-500 mt-1">
+        Estoque: {product.stock}
+      </p>
+
+      {
+        isOutOfStock && (
+          <p className="text-red-600 font-bold mt-2">
             ESGOTADO
           </p>
-        )}
-      </p>
-
-      <div className="flex items-center gap-4 mt-2 ">
-        <button
-          onClick={() => updateStock(product.stock - 1)}
-          className="bg-red-500 text-white w-8 h-8 rounded cursor-pointer"
-        >
-          -
-        </button>
-
-        <span className="font-bold">
-          {product.stock}
-        </span>
-
-        <button
-          onClick={() => updateStock(product.stock + 1)}
-          className="bg-green-500 text-white w-8 h-8 rounded cursor-pointer"
-        >
-          +
-        </button>
-      </div>
-
-      <button
-        onClick={handleDeleteProduct}
-        className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-      >
-        Deletar
-      </button>
-        
-      <button
-          onClick={handleSale}
-          disabled={isOutOfStock}
-          className={`
-            mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer
-            ${
-              isOutOfStock
-                ? 'bg-gray-500 cursor-not-allowed'
-                : 'bg-blue-600'
-            }
-            `}
-          
-          >
-          Vender
-      </button>
-
+        )
+      }
     </div>
-  )
+
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => updateStock(product.stock - 1)}
+        className="bg-red-500 text-white w-10 h-10 rounded-lg cursor-pointer text-xl"
+      >
+        -
+      </button>
+
+      <span className="font-bold text-xl">
+        {product.stock}
+      </span>
+
+      <button
+        onClick={() => updateStock(product.stock + 1)}
+        className="bg-green-500 text-white w-10 h-10 rounded-lg cursor-pointer text-xl"
+      >
+        +
+      </button>
+    </div>
+
+    <button
+      onClick={handleSale}
+      disabled={isOutOfStock}
+      className={`
+        text-white py-3 rounded-xl font-bold transition-all
+        ${
+          isOutOfStock
+            ? 'bg-gray-500 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
+        }
+      `}
+    >
+      Vender
+    </button>
+
+    <button
+      onClick={handleDeleteProduct}
+      className="bg-red-600 hover:bg-red-700 transition-all text-white py-3 rounded-xl font-bold"
+    >
+      Deletar
+    </button>
+  </div>
+)
 }
