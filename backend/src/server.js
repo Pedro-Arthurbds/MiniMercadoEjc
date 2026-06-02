@@ -239,6 +239,24 @@ app.post('/command-items', async (request, response) => {
   try {
     const { commandId, productId, quantity } = request.body
 
+    const command = await prisma.command.findUnique({
+      where: {
+        id: Number(commandId)
+      }
+    })
+
+    if (!command) {
+      return response.status(404).json({
+        error: 'Comanda não encontrada'
+      })
+    }
+
+    if (command.closed) {
+      return response.status(400).json({
+        error: 'comanda ja fechada'
+      })
+    }
+
     // Garante que os IDs sejam números (podem chegar como string do front-end)
     const productIdNumber = Number(productId)
     const commandIdNumber = Number(commandId)

@@ -1,87 +1,165 @@
 import { useState } from 'react'
-import axios from 'axios'
+import toast from 'react-hot-toast'
+
+import { api } from '../services/api'
 
 type ProductFormProps = {
-    onProductCreated: () => void
+  onProductCreated: () => void
 }
 
 export function ProductForm({
-    onProductCreated,
+  onProductCreated,
 }: ProductFormProps) {
-    const [name, setName] = useState('')
-    const [category, setCategory] = useState('')
-    const [price, setPrice] = useState('')
-    const [stock, setStock] = useState('')
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async function handleCreateProduct(e:any){
-        e.preventDefault()
+  // ── States ─────────────────────────────────────
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('')
+  const [price, setPrice] = useState('')
+  const [stock, setStock] = useState('')
 
-         await axios.post('http://localhost:3333/products',{
-            name,
-            category,
-            price: Number(price),
-            stock: Number(stock)
-        })
+  const [loading, setLoading] = useState(false)
 
-        setName('')
-        setCategory('')
-        setPrice('')
-        setStock('')
+  // ── Criar produto ──────────────────────────────
+  async function handleCreateProduct(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
 
-        onProductCreated()
+    e.preventDefault()
+
+    try {
+
+      setLoading(true)
+
+      await api.post('/products', {
+        name,
+        category,
+        price: Number(price),
+        stock: Number(stock),
+      })
+
+      toast.success('Produto criado com sucesso!')
+
+      // limpa formulário
+      setName('')
+      setCategory('')
+      setPrice('')
+      setStock('')
+
+      // recarrega lista
+      onProductCreated()
+
+    } catch (error) {
+
+      toast.error('Erro ao criar produto')
+
+      console.log(error)
+
+    } finally {
+
+      setLoading(false)
+
     }
+  }
 
-    return (
-      <form
-        onSubmit={handleCreateProduct}
-        className='bg-white p-6 rounded-b-xl shadow mb-8'
+  // ── JSX ────────────────────────────────────────
+  return (
+    <form
+      onSubmit={handleCreateProduct}
+      className="
+        bg-white
+        p-8
+        rounded-2xl
+        shadow-md
+        mb-8
+        border border-gray-100
+      "
+    >
+
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Cadastrar Produto
+      </h2>
+
+      <div className="grid md:grid-cols-4 gap-4">
+
+        <input
+          type="text"
+          placeholder="Produto"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="
+            border border-gray-200
+            p-4 rounded-xl
+            focus:outline-none
+            focus:ring-2 focus:ring-blue-500
+          "
+        />
+
+        <input
+          type="text"
+          placeholder="Categoria"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="
+            border border-gray-200
+            p-4 rounded-xl
+            focus:outline-none
+            focus:ring-2 focus:ring-blue-500
+          "
+        />
+
+        <input
+          type="number"
+          placeholder="Preço"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="
+            border border-gray-200
+            p-4 rounded-xl
+            focus:outline-none
+            focus:ring-2 focus:ring-blue-500
+          "
+        />
+
+        <input
+          type="number"
+          placeholder="Estoque"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
+          className="
+            border border-gray-200
+            p-4 rounded-xl
+            focus:outline-none
+            focus:ring-2 focus:ring-blue-500
+          "
+        />
+
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="
+          mt-6
+          bg-blue-600
+          hover:bg-blue-700
+          transition-all
+          text-white
+          px-6 py-3
+          rounded-xl
+          font-bold
+          disabled:opacity-50
+          disabled:cursor-not-allowed
+        "
       >
-        <h2 className='text-2xl font-semibold mb-4'>
-          Cadastrar produto
-        </h2>
 
-        <div className='grid grod-cols-4 gap-4'>
-              <input
-            type='text'
-            placeholder='Produto'
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className='border p-3 rounded-lg'
-          />
+        {
+          loading
+            ? 'Salvando...'
+            : 'Cadastrar Produto'
+        }
 
-             <input
-            type='text'
-            placeholder='Categoria'
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className='border p-3 rounded-lg'
-          />
+      </button>
 
-             <input
-            type='number'
-            placeholder='Preço'
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className='border p-3 rounded-lg'
-          />
-             <input
-            type='number'
-            placeholder='Estoque'
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            className='border p-3 rounded-lg'
-          />
-        </div>
-        
-        <button
-          type='submit'
-          className='mt-4 bg-blue-500 text-white px-6 py-3 rounded-lg'
-        >
-          Cadastrar
-        </button>
-
-      </form>
+    </form>
   )
-
-    }
+}
