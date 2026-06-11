@@ -5,6 +5,13 @@ import { ProductForm } from './components/ProductForm'
 import { CommandsPage } from './pages/CommandsPage'
 import { CommandCard } from './components/CommandCard'
 import { api } from './services/api'
+import { DashboardCard } from './components/DashboardCard'
+import {
+  FaBox,
+  FaExclamationTriangle,
+  FaTimesCircle,
+  FaClipboardList,
+} from 'react-icons/fa'
 
 export default function App() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +32,9 @@ export default function App() {
     loadCommands()
   }, [])
   
+  const [dashboardFilter, setDashboardFilter] =
+  useState('all')
+
   const [ search, setSearch ] = useState('')
 
  //FILTRO PARA PESQUISA DE CATEGORIA
@@ -33,22 +43,36 @@ export default function App() {
 
   //PESQUISA PELO PRODUTO
   const filteredProducts = products.filter(
-  (product) => {
-    const matchesSearch =
-      product.name
-        .toLowerCase()
-        .includes(search.toLowerCase())
+    (product) => {
+      const matchesSearch =
+        product.name
+          .toLowerCase()
+          .includes(search.toLowerCase())
 
-    const matchesCategory =
-      selectedCategory === ''
-        ? true
-        : product.category === selectedCategory
+      const matchesCategory =
+        selectedCategory === ''
+          ? true
+          : product.category === selectedCategory
 
-    return matchesSearch && matchesCategory
-  }
-)
+      const matchesDashboard =
+      dashboardFilter === 'all'
+      ? true
+      : dashboardFilter === 'outOfStock'
+      ? product.stock <= 0
+      : dashboardFilter === 'lowStock'
+      ? product.stock > 0 &&
+        product.stock <= 5
+      : true
 
-  const [commands, setCommands] = useState([])
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesDashboard
+      )
+    }
+  )
+
+  const [commands, setCommands] = useState<any[]>([])
 
   async function loadCommands() {
   const response = await api.get(
@@ -67,8 +91,35 @@ export default function App() {
 
   const [selectedCommand, setSelectedCommand] = useState <any | null>(null)
 
+  const totalProducts = products.length
+
+  const lowStockProducts = products.filter(
+  (product) =>
+    product.stock > 0 &&
+    product.stock <= 5
+  ).length
+
+  const outOfStockProducts = products.filter(
+    (product) => product.stock <= 0
+  ).length
+
+const openCommands = commands.filter(
+  (command: any) => !command.closed
+)
+
+const closedCommands = commands.filter(
+  (command: any) => command.closed
+)
+
+const openCommandsCount = openCommands.length
+
+const closedCommandsCount =
+  closedCommands.length
+
+
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200 max-w-7xl mx-auto p-8 ">
+  <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200 max-w-7xl mx-auto p-8 ">
   <header className="bg-white shadow-sm border-b">
     <div className="max-w-7xl mx-auto px-8 py-6">
       <h1 className="text-4xl font-black text-gray-800">
@@ -80,8 +131,66 @@ export default function App() {
       </p>
     </div>
   </header>
-      <ProductForm onProductCreated={loadProducts} />
+    
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 my-8">
 
+       <DashboardCard
+        title="Produtos"
+        value={totalProducts}
+        icon={<FaBox className="text-4xl text-blue-500" />}
+        color="text-gray-800"
+        active={dashboardFilter === 'all'}
+        onClick={() => setDashboardFilter('all')}
+      />
+
+      <DashboardCard
+        title="Esgotados"
+        value={outOfStockProducts}
+        icon={<FaTimesCircle className="text-4xl text-red-500" />}
+        color="text-red-600"
+        active={dashboardFilter === 'outOfStock'}
+        onClick={() =>
+          setDashboardFilter('outOfStock')
+        }
+      />
+
+      <DashboardCard
+        title="Baixo Estoque"
+        value={lowStockProducts}
+        icon={
+          <FaExclamationTriangle className="text-4xl text-yellow-500" />
+        }
+        color="text-yellow-600"
+        active={dashboardFilter === 'lowStock'}
+        onClick={() =>
+          setDashboardFilter('lowStock')
+        }
+      />
+
+      <DashboardCard
+      title="Comandas"
+      value={openCommandsCount}
+      icon={<FaClipboardList className="text-4xl text-blue-500" />}
+      color="text-blue-600"
+    />
+
+    <DashboardCard
+      title="Fechadas"
+      value={closedCommandsCount}
+      icon={<FaClipboardList className="text-4xl text-green-500" />}
+      color="text-green-600"
+    />
+
+    <DashboardCard
+      title="Faturamento"
+      value={`R$ ${totalRevenue.toFixed(2)}`}
+      icon={<FaDollarSign className="text-4xl text-green-500" />}
+      color="text-green-600"
+    />
+
+    </div>
+
+      <ProductForm onProductCreated={loadProducts} />
 
       <input 
       type="text"
@@ -126,7 +235,7 @@ export default function App() {
   ))}
 </div>
 
-      <div className=" grid grid-colos-1 md:grid-cols-2 lg:gid-cols-3 gap-6 ">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map(product => (
           <ProductCard
             key={product.id}
@@ -139,9 +248,9 @@ export default function App() {
       <CommandsPage />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {commands.map((command) => (
+       {openCommands.map((command: any) => (
           <CommandCard
-            onUpdated={command}
+            onUpdated={loadCommands}
             key={command.id}
             command={command}
             onSelect={() => setSelectedCommand(command)}
@@ -185,10 +294,29 @@ export default function App() {
                   Fechar Comanda
                 </button>
               </div>
+
             )}
               </div>
 
+              <div className="mt-12">
+          <h2 className="text-3xl font-bold mb-6">
+            Comandas Fechadas
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {closedCommands.map((command: any) => (
+              <CommandCard
+                key={command.id}
+                command={command}
+                onUpdated={loadCommands}
+                onSelect={() => setSelectedCommand(command)}
+              />
+            ))}
+          </div>
+        </div>
               </div>
+
+              
 
     
   )

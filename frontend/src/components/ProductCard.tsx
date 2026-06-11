@@ -27,13 +27,21 @@ export function ProductCard({
   // ── [DELETE] Deletar produto ───────────────────────────────
   // Chama a API para remover o produto pelo ID e avisa o pai para
   // atualizar a lista.
-  async function handleDeleteProduct() {
-    await api.delete(
-      `/products/${product.id}`
-    )
+async function handleDeleteProduct() {
+  const confirmed = confirm(
+    `Deseja deletar ${product.name}?`
+  )
 
-    onDeleted()  // dispara o callback para o componente pai recarregar
-  }
+  if (!confirmed) return
+
+  await api.delete(
+    `/products/${product.id}`
+  )
+
+  toast.success('Produto removido')
+
+  onDeleted()
+}
 
   // ── [PUT] Atualizar estoque ────────────────────────────────
   // Recebe o novo valor de estoque e envia todos os campos do produto
@@ -48,6 +56,8 @@ export function ProductCard({
         stock: newStock,       // apenas o estoque muda de fato
       }
     )
+
+    toast.success('Estoque atualizado')
 
     onDeleted()  // recarrega a lista após a atualização
   }
@@ -79,6 +89,10 @@ export function ProductCard({
   // mudar o visual do cartão (cinza + badge "ESGOTADO")
   const isOutOfStock = product.stock <= 0
 
+  const isLowStock =
+  product.stock > 0 &&
+  product.stock <= 5
+
   // ── Renderização (JSX) ─────────────────────────────────────
   // O que está dentro do return é o HTML do componente.
   // As classes do Tailwind controlam layout, cores e responsividade.
@@ -108,19 +122,16 @@ export function ProductCard({
       {/* ── Cabeçalho: categoria + nome ── */}
       <div>
         {/* Badge de categoria (ex: "Bebidas", "Laticínios") */}
-        <span
-        className="
+        <span className="
           inline-block
           text-xs
           font-semibold
           bg-blue-100
           text-blue-700
-          px-3 py-1
+          px-3
+          py-1
           rounded-full
-          uppercase
-          tracking-wide
-        "
-      >
+        ">
           {product.category}
         </span>
 
@@ -131,37 +142,67 @@ export function ProductCard({
 
       {/* ── Preço, estoque e badge de esgotado ── */}
       <div>
-        <p className="text-4xl font-black text-green-600 mt-2">
-          R$ {product.price}
+        <p className="text-3xl font-black text-green-600 mt-2">
+          R$ {product.price.toFixed(2)}
         </p>
 
-        <p className="text-gray-500 mt-3 font-medium">
-          Estoque: {product.stock}
-        </p>
+        <div className="mt-3">
+      {
+        isOutOfStock ? (
+          <span className="
+            bg-red-100
+            text-red-700
+            px-3
+            py-1
+            rounded-full
+            text-sm
+            font-bold
+          ">
+            Esgotado
+          </span>
+        ) : isLowStock ? (
+          <span className="
+            bg-yellow-100
+            text-yellow-700
+            px-3
+            py-1
+            rounded-full
+            text-sm
+            font-bold
+          ">
+            Baixo estoque
+          </span>
+        ) : (
+          <span className="
+            bg-green-100
+            text-green-700
+            px-3
+            py-1
+            rounded-full
+            text-sm
+            font-bold
+          ">
+            Em estoque
+          </span>
+        )
+      }
 
-        {/* Exibe "ESGOTADO" apenas quando o estoque for 0 */}
-        {isOutOfStock && (
-          <div className='mt-3'>
-            <span className='
-                 bg-red-100
-              text-red-700
-              px-3
-              py-1
-              rounded-full
-              text-sm
-              font-bold
-            '>
-              ESGOTADO
-            </span>
-          </div>
-        )}
+      <p className="mt-2 text-gray-500">
+        {product.stock} unidades
+      </p>
+    </div>
       </div>
 
       {/* ── Controles de estoque (- e +) ── */}
       {/* Chama updateStock com stock - 1 ou stock + 1 a cada clique */}
       <div className="flex items-center justify-center gap-5 py-2">
         <button
-          onClick={() => updateStock(product.stock - 1)}
+          onClick={() => {
+            if (product.stock > 0) {
+              updateStock(product.stock - 1)
+            }
+          }}
+          disabled={product.stock <= 0}
           className="
           bg-red-500
           hover:bg-red-600
@@ -178,7 +219,17 @@ export function ProductCard({
         </button>
 
         {/* Exibe o valor atual do estoque entre os botões */}
-        <span className="text-3xl font-black min-w-12.5 text-center">
+        <span
+        className="
+          text-3xl
+          font-black
+          min-w-15
+          text-center
+          bg-gray-100
+          rounded-xl
+          py-2
+        "
+        >
           {product.stock}
         </span>
 
