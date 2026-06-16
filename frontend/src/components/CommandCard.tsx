@@ -1,5 +1,6 @@
 
 import { api } from "../services/api"
+import { useNavigate } from 'react-router-dom'
 
 type Command = {
     id: number
@@ -10,13 +11,11 @@ type Command = {
 
 type Props = {
     command: Command
-    onSelect: () => void
     onUpdated: () => void
 }
 
 export function CommandCard({
     command,
-    onSelect,
     onUpdated,
 }:Props){
 
@@ -27,9 +26,12 @@ async function handleCloseCommand() {
     onUpdated()
 }
 
+const navigate = useNavigate()
+
     return (
         <div 
-        onClick={onSelect}
+        onClick={() =>
+        navigate(`/commands/${command.id}`)}
         className="bg-white rounded-2xl p-6 shadow">
             <h2 className="text-2xl font-bold">
                 {command.customer}
