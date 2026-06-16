@@ -1,284 +1,244 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState } from 'react'
-
-import { Navbar } from '../components/Navbar'
-import { ProductCard } from '../components/ProductCard'
-import { ProductForm } from '../components/ProductForm'
-import { api } from '../services/api'
+import { useEffect, useState } from "react";
+import { Navbar } from "../components/Navbar";
+import { ProductCard } from "../components/ProductCard";
+import { ProductForm } from "../components/ProductForm";
+import { api } from "../services/api";
+import {
+  FaSearch,
+  FaBox,
+  FaExclamationTriangle,
+  FaCheckCircle,
+  FaTag,
+  FaInbox,
+} from "react-icons/fa";
 
 type Product = {
-  id: number
-  name: string
-  category: string
-  price: number
-  stock: number
-}
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+};
 
-type SortOption = 'name' | 'price_asc' | 'price_desc' | 'stock_asc'
-
-// Limite abaixo do qual o produto é considerado crítico
-const CRITICAL_STOCK = 5
-
-function formatCurrency(value: number) {
-  return value.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  })
-}
-
-// ─── Metric Card (mesmo estilo do Dashboard) ────────────────────────
-type MetricCardProps = {
-  icon: string
-  label: string
-  value: string
-  sub?: string
-  danger?: boolean
-}
-
-function MetricCard({ icon, label, value, sub, danger }: MetricCardProps) {
+function SummaryCard({
+  label,
+  value,
+  accent,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  accent: string;
+  icon: React.ReactNode;
+}) {
   return (
-    <div
-      className={`rounded-xl p-4 flex flex-col gap-1 ${
-        danger ? 'bg-red-50' : 'bg-gray-50'
-      }`}
-    >
-      <span className="text-xs text-gray-500 flex items-center gap-1">
-        <span>{icon}</span> {label}
-      </span>
-      <span
-        className={`text-2xl font-semibold ${
-          danger ? 'text-red-600' : 'text-gray-900'
-        }`}
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
+      <div
+        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-base sm:text-lg flex-shrink-0 ${accent}`}
       >
-        {value}
-      </span>
-      {sub && (
-        <span className={`text-xs ${danger ? 'text-red-400' : 'text-gray-400'}`}>
-          {sub}
-        </span>
-      )}
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          {label}
+        </p>
+        <p className="text-2xl sm:text-3xl font-extrabold text-slate-800 tabular-nums leading-tight">
+          {value}
+        </p>
+      </div>
     </div>
-  )
+  );
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────
 export function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [sortBy, setSortBy] = useState<SortOption>('name')
-  const [showOnlyCritical, setShowOnlyCritical] = useState(false)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   async function loadProducts() {
-    const response = await api.get<Product[]>('/products')
-    setProducts(response.data)
+    try {
+      const r = await api.get<Product[]>("/products");
+      setProducts(r.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    void loadProducts()
-  }, [])
+    void loadProducts();
+  }, []);
 
-  // ── Derived data ────────────────────────────────────────────────
-  const criticalProducts = products.filter((p) => p.stock <= CRITICAL_STOCK)
-  const totalStockValue = products.reduce((sum, p) => sum + p.price * p.stock, 0)
-  const totalItems = products.reduce((sum, p) => sum + p.stock, 0)
-  const categories = ['', ...new Set(products.map((p) => p.category))]
+  const categories = ["", ...new Set(products.map((p) => p.category))];
 
-  const filteredProducts = products
-    .filter((product) => {
-      const matchesSearch = product.name
-        .toLowerCase()
-        .includes(search.toLowerCase())
-      const matchesCategory =
-        selectedCategory === '' ? true : product.category === selectedCategory
-      const matchesCritical = showOnlyCritical
-        ? product.stock <= CRITICAL_STOCK
-        : true
-      return matchesSearch && matchesCategory && matchesCritical
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'price_asc':
-          return a.price - b.price
-        case 'price_desc':
-          return b.price - a.price
-        case 'stock_asc':
-          return a.stock - b.stock
-        case 'name':
-        default:
-          return a.name.localeCompare(b.name)
-      }
-    })
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "" ? true : p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const criticalStock = products.filter((p) => p.stock <= 10).length;
+  const healthyStock = products.filter((p) => p.stock > 10).length;
+
+  const today = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
+            <p className="text-sm font-medium text-slate-400">
+              Carregando produtos…
+            </p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
-
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
-
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-black">Produtos</h1>
-            <p className="text-gray-400 text-sm mt-1">
-              {products.length} produto{products.length !== 1 ? 's' : ''} cadastrado{products.length !== 1 ? 's' : ''}
-            </p>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 sm:mb-10">
+            <div>
+              <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-1">
+                Estoque
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 leading-none">
+                Produtos
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="text-xs sm:text-sm text-slate-400 capitalize hidden sm:block">
+                {today}
+              </p>
+              <button
+                onClick={() => setShowForm((prev) => !prev)}
+                className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+              >
+                {showForm ? "✕ Cancelar" : "+ Novo Produto"}
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Métricas */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Visão do estoque
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <MetricCard
-              icon="📦"
-              label="Produtos"
-              value={String(products.length)}
-              sub="cadastrados"
+          {/* Summary Cards — 1 col mobile, 3 cols sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 mb-6 sm:mb-8">
+            <SummaryCard
+              label="Total de Produtos"
+              value={products.length}
+              accent="bg-indigo-500"
+              icon={<FaBox />}
             />
-            <MetricCard
-              icon="🔢"
-              label="Itens em estoque"
-              value={String(totalItems)}
-              sub="unidades totais"
+            <SummaryCard
+              label="Estoque Saudável"
+              value={healthyStock}
+              accent="bg-emerald-500"
+              icon={<FaCheckCircle />}
             />
-            <MetricCard
-              icon="💰"
-              label="Valor em estoque"
-              value={formatCurrency(totalStockValue)}
-              sub="preço × quantidade"
-            />
-            <MetricCard
-              icon="⚠️"
-              label="Estoque crítico"
-              value={String(criticalProducts.length)}
-              sub={`≤ ${CRITICAL_STOCK} unidades restantes`}
-              danger={criticalProducts.length > 0}
+            <SummaryCard
+              label="Estoque Crítico"
+              value={criticalStock}
+              accent={criticalStock > 0 ? "bg-rose-500" : "bg-slate-400"}
+              icon={<FaExclamationTriangle />}
             />
           </div>
-        </section>
 
-        {/* Alerta de estoque crítico */}
-        {criticalProducts.length > 0 && (
-          <section className="bg-red-50 border border-red-100 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2">
-              ⚠️ Produtos com estoque crítico
-            </h2>
-            <ul className="divide-y divide-red-100">
-              {criticalProducts.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between py-2.5"
-                >
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {p.name}
-                    </span>
-                    <span className="text-xs text-gray-400 ml-2">
-                      {p.category}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
-                      p.stock === 0
-                        ? 'bg-red-200 text-red-800'
-                        : 'bg-red-100 text-red-700'
+          {/* Product Form (collapsible) */}
+          {showForm && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 mb-5 sm:mb-6">
+              <h2 className="text-sm font-bold text-slate-700 mb-4 sm:mb-5">
+                Cadastrar Novo Produto
+              </h2>
+              <ProductForm
+                onProductCreated={() => {
+                  void loadProducts();
+                  setShowForm(false);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Filters + Search */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 sm:p-4 mb-5 sm:mb-6 flex flex-col gap-3">
+            {/* Search */}
+            <div className="relative">
+              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar produto…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder-slate-400 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition"
+              />
+            </div>
+
+            {/* Category pills + count */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <FaTag className="text-slate-300 text-xs flex-shrink-0 hidden sm:block" />
+              <div className="flex gap-2 flex-wrap flex-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                      selectedCategory === cat
+                        ? "bg-indigo-500 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
                     }`}
                   >
-                    {p.stock === 0 ? 'Sem estoque' : `${p.stock} un`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+                    {cat || "Todos"}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs font-medium text-slate-400 whitespace-nowrap ml-auto">
+                {filteredProducts.length} produto
+                {filteredProducts.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
 
-        {/* Formulário de cadastro */}
-        <ProductForm onProductCreated={loadProducts} />
-
-        {/* Busca + Ordenação */}
-        <div className="flex gap-3 flex-col sm:flex-row">
-          <input
-            type="text"
-            placeholder="Buscar produto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 p-4 rounded-2xl border bg-white"
-          />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="p-4 rounded-2xl border bg-white text-sm text-gray-700 cursor-pointer"
-          >
-            <option value="name">Ordenar: A–Z</option>
-            <option value="price_asc">Menor preço</option>
-            <option value="price_desc">Maior preço</option>
-            <option value="stock_asc">Menor estoque</option>
-          </select>
-        </div>
-
-        {/* Filtros de categoria + toggle crítico */}
-        <div className="flex gap-2 flex-wrap items-center">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-xl border text-sm transition ${
-                selectedCategory === category
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {category || 'Todos'}
-            </button>
-          ))}
-
-          <div className="ml-auto">
-            <button
-              onClick={() => setShowOnlyCritical((v) => !v)}
-              className={`px-4 py-2 rounded-xl border text-sm transition flex items-center gap-2 ${
-                showOnlyCritical
-                  ? 'bg-red-600 text-white border-red-600'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              ⚠️ Só críticos
-              {criticalProducts.length > 0 && (
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${
-                    showOnlyCritical
-                      ? 'bg-red-500 text-white'
-                      : 'bg-red-100 text-red-700'
-                  }`}
+          {/* Product Grid — 1 col mobile, 2 md, 3 lg */}
+          {filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <FaInbox className="text-5xl text-slate-300" />
+              <p className="text-base font-medium text-slate-400 text-center px-4">
+                {search
+                  ? `Nenhum produto encontrado para "${search}"`
+                  : "Nenhum produto nesta categoria"}
+              </p>
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="text-sm text-indigo-500 hover:underline"
                 >
-                  {criticalProducts.length}
-                </span>
+                  Limpar busca
+                </button>
               )}
-            </button>
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {filteredProducts.map((p) => (
+                <ProductCard key={p.id} product={p} onDeleted={loadProducts} />
+              ))}
+            </div>
+          )}
         </div>
-
-        {/* Grid de produtos */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-sm">Nenhum produto encontrado.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onDeleted={loadProducts}
-              />
-            ))}
-          </div>
-        )}
-
       </div>
     </>
-  )
+  );
 }
