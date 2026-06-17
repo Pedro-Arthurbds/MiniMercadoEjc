@@ -21,9 +21,7 @@ const app = express()
 // Middlewares são funções que rodam ANTES das suas rotas,
 // preparando ou transformando a requisição/resposta.
 
-app.use(cors({
-  origin: 'https://mini-mercado-ejc.vercel.app'
-}))
+app.use(cors())
 app.use(express.json())   // permite ler o corpo (body) das requisições em JSON
 
 // ── Rota raiz (teste rápido) ─────────────────────────────────
