@@ -174,7 +174,23 @@ app.post('/sales', async (request, response) => {
   return response.status(201).json(sale)  // 201 = "Created" (recurso criado com sucesso)
 })
 
+app.get('/sales', async (req, res) => {
+  try {
+    const sales = await prisma.sale.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
 
+    res.json(sales)
+  } catch (error) {
+    console.log(error)
+
+    res.status(500).json({
+      error: 'Erro ao listar vendas',
+    })
+  }
+})
 // ============================================================
 //  ROTAS DE COMANDAS  (/commands)
 //  Uma comanda agrupa vários itens de um cliente (ex: num bar).

@@ -26,14 +26,26 @@ function SummaryCard({
   value,
   accent,
   icon,
+  onClick,
+  active,
 }: {
   label: string;
   value: string | number;
   accent: string;
   icon: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
 }) {
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
+    <Wrapper
+      onClick={onClick}
+      className={`bg-white rounded-2xl border shadow-sm p-4 sm:p-6 flex items-center gap-3 sm:gap-4 w-full text-left transition-all ${
+        active
+          ? "border-rose-300 ring-2 ring-rose-200"
+          : "border-slate-100"
+      } ${onClick ? "cursor-pointer hover:shadow-md" : ""}`}
+    >
       <div
         className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-base sm:text-lg flex-shrink-0 ${accent}`}
       >
@@ -47,7 +59,7 @@ function SummaryCard({
           {value}
         </p>
       </div>
-    </div>
+    </Wrapper>
   );
 }
 
@@ -57,6 +69,7 @@ export function ProductsPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showCriticalOnly, setShowCriticalOnly] = useState(false);
 
   async function loadProducts() {
     try {
@@ -79,7 +92,8 @@ export function ProductsPage() {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
       selectedCategory === "" ? true : p.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesCritical = showCriticalOnly ? p.stock <= 10 : true;
+    return matchesSearch && matchesCategory && matchesCritical;
   });
 
   const criticalStock = products.filter((p) => p.stock <= 10).length;
@@ -155,6 +169,8 @@ export function ProductsPage() {
               value={criticalStock}
               accent={criticalStock > 0 ? "bg-rose-500" : "bg-slate-400"}
               icon={<FaExclamationTriangle />}
+              onClick={() => setShowCriticalOnly((prev) => !prev)}
+              active={showCriticalOnly}
             />
           </div>
 
@@ -187,7 +203,7 @@ export function ProductsPage() {
               />
             </div>
 
-            {/* Category pills + count */}
+            {/* Category pills + critical toggle + count */}
             <div className="flex items-center gap-2 flex-wrap">
               <FaTag className="text-slate-300 text-xs flex-shrink-0 hidden sm:block" />
               <div className="flex gap-2 flex-wrap flex-1">
@@ -204,6 +220,17 @@ export function ProductsPage() {
                     {cat || "Todos"}
                   </button>
                 ))}
+                <button
+                  onClick={() => setShowCriticalOnly((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                    showCriticalOnly
+                      ? "bg-rose-500 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                  }`}
+                >
+                  <FaExclamationTriangle className="text-[10px]" />
+                  Crítico
+                </button>
               </div>
               <span className="text-xs font-medium text-slate-400 whitespace-nowrap ml-auto">
                 {filteredProducts.length} produto
@@ -219,6 +246,8 @@ export function ProductsPage() {
               <p className="text-base font-medium text-slate-400 text-center px-4">
                 {search
                   ? `Nenhum produto encontrado para "${search}"`
+                  : showCriticalOnly
+                  ? "Nenhum produto com estoque crítico"
                   : "Nenhum produto nesta categoria"}
               </p>
               {search && (
