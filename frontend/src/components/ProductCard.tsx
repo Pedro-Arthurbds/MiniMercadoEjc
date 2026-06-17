@@ -195,7 +195,7 @@ async function handleDeleteProduct() {
 
       {/* ── Controles de estoque (- e +) ── */}
       {/* Chama updateStock com stock - 1 ou stock + 1 a cada clique */}
-      <div className="flex items-center justify-center gap-5 py-2">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-2">
         <button
           onClick={() => {
             if (product.stock > 0) {
@@ -208,7 +208,7 @@ async function handleDeleteProduct() {
           hover:bg-red-600
           transition-all
           text-white
-          w-11 h-11
+          w-full sm:w-11 h-11
           rounded-xl
           cursor-pointer
           text-xl
@@ -219,17 +219,7 @@ async function handleDeleteProduct() {
         </button>
 
         {/* Exibe o valor atual do estoque entre os botões */}
-        <span
-        className="
-          text-3xl
-          font-black
-          min-w-15
-          text-center
-          bg-gray-100
-          rounded-xl
-          py-2
-        "
-        >
+        <span className="text-3xl font-black min-w-15 text-center bg-gray-100 rounded-xl py-2 px-6 sm:px-2 w-full sm:w-auto">
           {product.stock}
         </span>
 
@@ -240,7 +230,7 @@ async function handleDeleteProduct() {
           hover:bg-green-600
           transition-all
           text-white
-          w-11 h-11
+          w-full sm:w-11 h-11
           rounded-xl
           cursor-pointer
           text-xl
