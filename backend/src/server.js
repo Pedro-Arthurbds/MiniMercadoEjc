@@ -32,8 +32,10 @@ app.get('/', (req, res) => {
 
 // Inicia o servidor na porta 3333
 // Depois que rodar, acesse: http://localhost:3333
-app.listen(3333, () => {
-  console.log('Servidor rodando na porta 3333')
+const PORT = process.env.PORT || 3333
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`)
 })
 
 
@@ -354,27 +356,6 @@ app.get('/commands/:id', async (request, response) => {
   }
 })
 
-app.put('/commannds/:id/close', async (request, response) => {
-  try{
-    const {id} = request.params
-
-    const command = await prisma.command.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        closed: true,
-        closedAt: new Date()
-      }
-    })
-      response.json(command)
-  } catch (error){
-    response.status(500).json({
-    error: "Error ao fechar Comanda"
-    })
-  }
-})
-
 //ROTA PARA FECHAR COMANDA
 app.put('/commands/:id/close', async (req, res) => {
   const {id} = req.params
@@ -391,7 +372,7 @@ app.put('/commands/:id/close', async (req, res) => {
   res.json(command)
 })
 
-/app.delete('/command-items/:id', async (request, response) => {
+app.delete('/command-items/:id', async (request, response) => {
   try {
     const { id } = request.params
 
