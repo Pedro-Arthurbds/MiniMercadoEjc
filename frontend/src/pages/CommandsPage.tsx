@@ -22,6 +22,7 @@ type Command = {
   createdAt?: string;
   openedBy?: { id: number; name: string } | null;
   closedBy?: { id: number; name: string } | null;
+  publicCode: string;
 };
 
 type Filter = "all" | "open" | "closed";
@@ -180,7 +181,7 @@ export function CommandsPage() {
 
               {/* Botão nova comanda */}
               {hasRole("MINIMERCADO", "SECRETARIA") && (
-              <button
+                <button
                   onClick={() => setModalOpen(true)}
                   className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all"
                 >
@@ -189,7 +190,7 @@ export function CommandsPage() {
                 </button>
               )}
             </div>
-          </div>  
+          </div>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
