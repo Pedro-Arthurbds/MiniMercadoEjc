@@ -1,18 +1,16 @@
-
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Product {
-  id     Int @id @default(autoincrement())
-  name     String
-  category     String
+  id        Int      @id @default(autoincrement())
+  name      String
+  category  String
   price     Float
   stock     Int      @default(0)
   active    Boolean  @default(true)
@@ -29,25 +27,56 @@ model Sale {
   createdAt DateTime @default(now())
 }
 
+enum Role {
+  ADMIN
+  MINIMERCADO
+  SECRETARIA
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+
+  openedCommands Command[]     @relation("OpenedCommands")
+  closedCommands Command[]     @relation("ClosedCommands")
+  addedItems     CommandItem[] @relation("AddedItems")
+}
+
 model Command {
-  id        Int           @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   customer  String
-  total     Float         @default(0)
-  createdAt DateTime      @default(now())
+  total     Float    @default(0)
+  createdAt DateTime @default(now())
 
   items CommandItem[]
 
-  closed Boolean @default(false)
+  closed   Boolean   @default(false)
   closedAt DateTime?
+
+  publicCode String @unique @default(uuid())
+
+  openedByUserId Int?
+  openedBy       User? @relation("OpenedCommands", fields: [openedByUserId], references: [id])
+
+  closedByUserId Int?
+  closedBy       User? @relation("ClosedCommands", fields: [closedByUserId], references: [id])
 }
 
 model CommandItem {
   id        Int      @id @default(autoincrement())
   quantity  Int
+  createdAt DateTime @default(now())
 
-  command   Command  @relation(fields: [commandId], references: [id])
+  command   Command @relation(fields: [commandId], references: [id])
   commandId Int
 
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
   productId Int
+
+  addedByUserId Int?
+  addedBy       User? @relation("AddedItems", fields: [addedByUserId], references: [id])
 }

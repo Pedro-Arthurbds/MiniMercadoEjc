@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState } from 'react'
-import { Navbar } from '../components/Navbar'
-import { CommandCard } from '../components/CommandCard'
-import { CreateCommandModal } from '../components/CreateCommandModal'
-import { api } from '../services/api'
-
+import { useEffect, useState } from "react";
+import { Navbar } from "../components/Navbar";
+import { CommandCard } from "../components/CommandCard";
+import { CreateCommandModal } from "../components/CreateCommandModal";
+import { api } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 import {
   FaSearch,
   FaClipboardList,
@@ -12,16 +12,19 @@ import {
   FaClock,
   FaInbox,
   FaPlus,
-} from 'react-icons/fa'
+} from "react-icons/fa";
 
 type Command = {
-  id: number
-  customer: string
-  total: number
-  closed: boolean
-}
+  id: number;
+  customer: string;
+  total: number;
+  closed: boolean;
+  createdAt?: string;
+  openedBy?: { id: number; name: string } | null;
+  closedBy?: { id: number; name: string } | null;
+};
 
-type Filter = 'all' | 'open' | 'closed'
+type Filter = "all" | "open" | "closed";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -31,10 +34,10 @@ function SummaryCard({
   accent,
   icon,
 }: {
-  label: string
-  value: number
-  accent: string
-  icon: React.ReactNode
+  label: string;
+  value: number;
+  accent: string;
+  icon: React.ReactNode;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
@@ -52,7 +55,7 @@ function SummaryCard({
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function FilterButton({
@@ -61,10 +64,10 @@ function FilterButton({
   activeClass,
   onClick,
 }: {
-  label: string
-  active: boolean
-  activeClass: string
-  onClick: () => void
+  label: string;
+  active: boolean;
+  activeClass: string;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -72,58 +75,63 @@ function FilterButton({
       className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
         active
           ? `${activeClass} text-white shadow-sm`
-          : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
+          : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
       }`}
     >
       {label}
     </button>
-  )
+  );
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export function CommandsPage() {
-  const [commands, setCommands] = useState<Command[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<Filter>('all')
-  const [search, setSearch] = useState('')
-  const [modalOpen, setModalOpen] = useState(false)
+  const [commands, setCommands] = useState<Command[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const { hasRole } = useAuth();
 
   async function loadCommands() {
     try {
-      const response = await api.get('/commands')
-      setCommands(response.data)
+      const response = await api.get("/commands");
+      setCommands(response.data);
     } catch (error) {
-      console.error('Erro ao carregar comandas:', error)
+      console.error("Erro ao carregar comandas:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadCommands()
-  }, [])
+    void loadCommands();
+  }, []);
 
-  const openCommands = commands.filter((c) => !c.closed)
-  const closedCommands = commands.filter((c) => c.closed)
+  const openCommands = commands.filter((c) => !c.closed);
+  const closedCommands = commands.filter((c) => c.closed);
 
   const filteredCommands = commands.filter((command) => {
     const matchesSearch = command.customer
       .toLowerCase()
-      .includes(search.toLowerCase())
+      .includes(search.toLowerCase());
 
     const matchesFilter =
-      filter === 'all' ? true : filter === 'open' ? !command.closed : command.closed
+      filter === "all"
+        ? true
+        : filter === "open"
+          ? !command.closed
+          : command.closed;
 
-    return matchesSearch && matchesFilter
-  })
+    return matchesSearch && matchesFilter;
+  });
 
-  const today = new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
+  const today = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading) {
@@ -137,7 +145,7 @@ export function CommandsPage() {
           </div>
         </div>
       </>
-    )
+    );
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -154,7 +162,6 @@ export function CommandsPage() {
 
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-7xl mx-auto px-6 py-10">
-
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
             <div>
@@ -167,18 +174,22 @@ export function CommandsPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <p className="text-sm text-slate-400 capitalize hidden sm:block">{today}</p>
+              <p className="text-sm text-slate-400 capitalize hidden sm:block">
+                {today}
+              </p>
 
               {/* Botão nova comanda */}
+              {hasRole("MINIMERCADO", "SECRETARIA") && (
               <button
-                onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all"
-              >
-                <FaPlus className="text-xs" />
-                Nova comanda
-              </button>
+                  onClick={() => setModalOpen(true)}
+                  className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all"
+                >
+                  <FaPlus className="text-xs" />
+                  Nova comanda
+                </button>
+              )}
             </div>
-          </div>
+          </div>  
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -207,21 +218,21 @@ export function CommandsPage() {
             <div className="flex gap-2 shrink-0">
               <FilterButton
                 label="Todas"
-                active={filter === 'all'}
+                active={filter === "all"}
                 activeClass="bg-slate-700"
-                onClick={() => setFilter('all')}
+                onClick={() => setFilter("all")}
               />
               <FilterButton
                 label="Abertas"
-                active={filter === 'open'}
+                active={filter === "open"}
                 activeClass="bg-emerald-500"
-                onClick={() => setFilter('open')}
+                onClick={() => setFilter("open")}
               />
               <FilterButton
                 label="Fechadas"
-                active={filter === 'closed'}
+                active={filter === "closed"}
                 activeClass="bg-indigo-500"
-                onClick={() => setFilter('closed')}
+                onClick={() => setFilter("closed")}
               />
             </div>
 
@@ -239,7 +250,8 @@ export function CommandsPage() {
             </div>
 
             <span className="shrink-0 text-xs font-medium text-slate-400 self-center">
-              {filteredCommands.length} resultado{filteredCommands.length !== 1 ? 's' : ''}
+              {filteredCommands.length} resultado
+              {filteredCommands.length !== 1 ? "s" : ""}
             </span>
           </div>
 
@@ -250,11 +262,11 @@ export function CommandsPage() {
               <p className="text-base font-medium text-slate-400">
                 {search
                   ? `Nenhuma comanda encontrada para "${search}"`
-                  : 'Nenhuma comanda nesta categoria'}
+                  : "Nenhuma comanda nesta categoria"}
               </p>
               {search ? (
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() => setSearch("")}
                   className="text-sm text-indigo-500 hover:underline mt-1"
                 >
                   Limpar busca
@@ -279,9 +291,8 @@ export function CommandsPage() {
               ))}
             </div>
           )}
-
         </div>
       </div>
     </>
-  )
+  );
 }

@@ -5,12 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Navbar } from "../components/Navbar";
+import { useAuth } from "../contexts/AuthContext";
 import {
   FaArrowLeft,
   FaPlus,
   FaMinus,
   FaShoppingCart,
   FaSearch,
+  FaPrint,
+  FaQrcode,
+  FaReceipt,
 } from "react-icons/fa";
 import QRCode from "qrcode";
 
@@ -27,6 +31,7 @@ type CommandItem = {
   id: number;
   quantity: number;
   product: Product;
+  addedBy?: { id: number; name: string } | null;
 };
 
 type Command = {
@@ -35,6 +40,9 @@ type Command = {
   total: number;
   closed: boolean;
   items: CommandItem[];
+  publicCode: string;
+  openedBy?: { id: number; name: string } | null;
+  closedBy?: { id: number; name: string } | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,16 +56,28 @@ function formatCurrency(value: number) {
 function ItemRow({ item }: { item: CommandItem }) {
   const subtotal = item.product.price * item.quantity;
   return (
-    <div className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+    <div className="flex items-center justify-between py-3.5 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 px-2 -mx-2 rounded-lg transition-colors">
       <div className="flex-1 min-w-0 pr-3">
-        <p className="text-sm font-semibold text-slate-800 truncate">
+        <p className="text-sm font-bold text-slate-800 truncate">
           {item.product.name}
         </p>
-        <p className="text-xs text-slate-400 mt-0.5">
-          {item.quantity}× · {formatCurrency(item.product.price)} cada
+        <p className="text-xs font-medium text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
+            {item.quantity}x
+          </span>
+          <span>·</span>
+          <span>{formatCurrency(item.product.price)}</span>
+          {item.addedBy && (
+            <>
+              <span>·</span>
+              <span className="text-indigo-500 font-semibold">
+                👤 {item.addedBy.name}
+              </span>
+            </>
+          )}
         </p>
       </div>
-      <span className="text-sm font-bold text-slate-700 flex-shrink-0 tabular-nums">
+      <span className="text-sm font-extrabold text-slate-700 flex-shrink-0 tabular-nums">
         {formatCurrency(subtotal)}
       </span>
     </div>
@@ -76,22 +96,22 @@ function QuantitySelector({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
       <button
         onClick={() => onChange(Math.max(1, value - 1))}
-        className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition text-slate-600 active:scale-95"
+        className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center transition text-slate-600 hover:bg-slate-50 active:scale-95"
       >
-        <FaMinus className="text-xs" />
+        <FaMinus className="text-[10px]" />
       </button>
-      <span className="w-8 text-center text-base font-bold text-slate-800 tabular-nums select-none">
+      <span className="w-10 text-center text-sm font-extrabold text-slate-800 tabular-nums select-none">
         {value}
       </span>
       <button
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
-        className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition text-slate-600 active:scale-95"
+        className="w-8 h-8 rounded-lg bg-white shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition text-slate-600 hover:bg-slate-50 active:scale-95"
       >
-        <FaPlus className="text-xs" />
+        <FaPlus className="text-[10px]" />
       </button>
     </div>
   );
@@ -101,14 +121,14 @@ function QuantitySelector({
 
 function QRPanel({ command }: { command: Command }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const commandUrl = `${window.location.origin}/commands/${command.id}`;
+  const commandUrl = `${window.location.origin}/c/${command.publicCode}`;
 
   useEffect(() => {
     if (!canvasRef.current) return;
     void QRCode.toCanvas(canvasRef.current, commandUrl, {
-      width: 160,
-      margin: 2,
-      color: { dark: "#111827", light: "#ffffff" },
+      width: 140,
+      margin: 1,
+      color: { dark: "#1e293b", light: "#ffffff" },
     });
   }, [commandUrl]);
 
@@ -152,24 +172,27 @@ function QRPanel({ command }: { command: Command }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col sm:flex-row lg:flex-col items-center gap-4">
-      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider self-start w-full">
-        QR Code
-      </h2>
-
-      <div className="bg-slate-50 rounded-xl p-3 flex-shrink-0">
-        <canvas ref={canvasRef} />
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col items-center gap-4">
+      <div className="w-full flex items-center gap-2 pb-3 border-b border-slate-100">
+        <FaQrcode className="text-slate-400 text-sm" />
+        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Acesso via QR Code
+        </h2>
       </div>
 
-      <div className="flex flex-col gap-3 flex-1 w-full sm:w-auto lg:w-full">
-        <p className="text-xs text-slate-400 text-center break-all">
+      <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center border border-slate-100 shadow-inner">
+        <canvas ref={canvasRef} className="rounded-lg" />
+      </div>
+
+      <div className="w-full space-y-3">
+        <p className="text-[11px] text-slate-400 text-center break-all bg-slate-50 p-2 rounded-xl border border-slate-100 font-mono">
           {commandUrl}
         </p>
         <button
           onClick={handlePrint}
-          className="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 active:bg-black text-white text-sm font-semibold transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 active:bg-black text-white text-sm font-bold transition-all shadow-sm"
         >
-          🖨️ Imprimir QR
+          <FaPrint className="text-xs" /> Imprimir Ficha
         </button>
       </div>
     </div>
@@ -195,33 +218,33 @@ function AddItemModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 sm:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* Sheet on mobile, centered modal on sm+ */}
-      <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-xl p-6 pb-8 sm:pb-6">
-        {/* Drag handle (mobile only) */}
-        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5 sm:hidden" />
+      <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-xl p-6 pb-8 sm:pb-6 border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-5 sm:hidden" />
 
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">{product.name}</h3>
-            <p className="text-sm text-slate-400 mt-0.5">
-              {formatCurrency(product.price)} · {product.stock} em estoque
+            <h3 className="text-lg font-extrabold text-slate-800">
+              {product.name}
+            </h3>
+            <p className="text-xs font-semibold text-indigo-500 mt-1">
+              {formatCurrency(product.price)} · {product.stock} disponíveis
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 transition flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition flex-shrink-0"
           >
             ✕
           </button>
         </div>
 
-        <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 mb-4">
-          <span className="text-sm text-slate-500">Quantidade</span>
+        <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 mb-4 border border-slate-100">
+          <span className="text-sm font-medium text-slate-600">Quantidade</span>
           <QuantitySelector
             value={quantity}
             max={product.stock}
@@ -229,15 +252,15 @@ function AddItemModal({
           />
         </div>
 
-        <div className="flex items-center justify-between text-sm mb-5">
-          <span className="text-slate-500">Subtotal</span>
-          <span className="font-bold text-slate-800 tabular-nums">
+        <div className="flex items-center justify-between text-sm mb-5 px-1">
+          <span className="font-medium text-slate-400">Total do item</span>
+          <span className="font-black text-lg text-slate-800 tabular-nums">
             {formatCurrency(product.price * quantity)}
           </span>
         </div>
 
         {error && (
-          <p className="text-xs text-rose-500 mb-3 flex items-center gap-1">
+          <p className="text-xs font-semibold text-rose-500 mb-4 bg-rose-50 p-2.5 rounded-lg border border-rose-100 flex items-center gap-2">
             ⚠ {error}
           </p>
         )}
@@ -245,24 +268,22 @@ function AddItemModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 transition"
           >
             Cancelar
           </button>
           <button
             onClick={() => onConfirm(quantity)}
             disabled={adding}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 transition flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-sm shadow-indigo-100"
           >
             {adding ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Adicionando…
+                Salvando…
               </>
             ) : (
-              <>
-                <FaPlus className="text-xs" /> Adicionar
-              </>
+              "Confirmar"
             )}
           </button>
         </div>
@@ -286,8 +307,10 @@ export function CommandDetailsPage() {
   const [addError, setAddError] = useState("");
   const [search, setSearch] = useState("");
 
-  // Mobile tab state: 'items' | 'catalog'
   const [mobileTab, setMobileTab] = useState<"items" | "catalog">("items");
+
+  const { hasRole } = useAuth();
+  const canManageItems = hasRole("MINIMERCADO");
 
   async function loadCommand() {
     const response = await api.get(`/commands/${id}`);
@@ -343,8 +366,6 @@ export function CommandDetailsPage() {
   const alreadyInCommand = (productId: number) =>
     command?.items.some((i) => i.product.id === productId) ?? false;
 
-  // ── Loading ────────────────────────────────────────────────────────────────
-
   if (loadingPage || !command) {
     return (
       <>
@@ -359,41 +380,48 @@ export function CommandDetailsPage() {
     );
   }
 
+  const mobileTabs = [
+    { key: "items" as const, label: `Itens (${command.items.length})` },
+    ...(canManageItems
+      ? [{ key: "catalog" as const, label: "Adicionar Itens" }]
+      : []),
+  ];
+
   // ── Shared: product catalog panel content ─────────────────────────────────
 
   const CatalogContent = (
     <>
       {command.closed ? (
-        <div className="flex-1 flex items-center justify-center py-12 text-slate-400 text-sm text-center px-4">
+        <div className="flex-1 flex items-center justify-center py-12 text-slate-400 text-sm text-center px-4 font-medium">
           Comanda fechada — não é possível adicionar itens.
         </div>
       ) : (
         <>
-          {/* Search */}
           <div className="relative mb-4">
-            <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none" />
+            <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none" />
             <input
               type="text"
-              placeholder="Buscar produto…"
+              placeholder="Buscar produto pelo nome..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder-slate-400 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder-slate-400 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all"
             />
           </div>
 
-          {/* Product list */}
           <div
-            className="overflow-y-auto space-y-2 flex-1 pr-0.5"
-            style={{ maxHeight: "clamp(260px, 50vh, 520px)" }}
+            className="overflow-y-auto space-y-2 flex-1 pr-1"
+            style={{ maxHeight: "clamp(280px, 55vh, 520px)" }}
           >
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
-                <p className="text-3xl mb-2">📭</p>
-                <p className="text-sm">Nenhum produto encontrado.</p>
+                <p className="text-2xl mb-2">🔎</p>
+                <p className="text-sm font-medium">
+                  Nenhum produto encontrado.
+                </p>
                 {search && (
                   <button
                     onClick={() => setSearch("")}
-                    className="text-xs text-indigo-500 hover:underline mt-1"
+                    className="text-xs text-indigo-500 font-bold hover:underline mt-2 block mx-auto"
                   >
                     Limpar busca
                   </button>
@@ -407,38 +435,45 @@ export function CommandDetailsPage() {
                 return (
                   <div
                     key={product.id}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl border transition ${
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
                       outOfStock
-                        ? "border-slate-100 bg-slate-50 opacity-50"
-                        : "border-slate-100 hover:border-slate-200 hover:bg-slate-50/60"
+                        ? "border-slate-100 bg-slate-50/60 opacity-50"
+                        : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm"
                     }`}
                   >
                     <div className="min-w-0 flex-1 pr-3">
-                      <p className="text-sm font-semibold text-slate-800 truncate">
+                      <p className="text-sm font-bold text-slate-800 truncate">
                         {product.name}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {formatCurrency(product.price)} · {product.stock} em
-                        estoque
+                      <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                        <span className="text-emerald-600">
+                          {formatCurrency(product.price)}
+                        </span>
+                        {" · "}
+                        <span
+                          className={product.stock <= 5 ? "text-amber-500" : ""}
+                        >
+                          {product.stock} un.
+                        </span>
                       </p>
                     </div>
 
                     <button
                       onClick={() => openModal(product)}
                       disabled={outOfStock}
-                      className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition active:scale-95 ${
+                      className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all active:scale-95 ${
                         outOfStock
                           ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                           : inCommand
-                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            : "bg-indigo-500 text-white hover:bg-indigo-600"
+                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                            : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                       }`}
                     >
-                      <FaPlus className="text-[10px]" />
+                      <FaPlus className="text-[9px]" />
                       {outOfStock
                         ? "Sem estoque"
                         : inCommand
-                          ? "Adicionar +"
+                          ? "Por mais"
                           : "Adicionar"}
                     </button>
                   </div>
@@ -456,18 +491,30 @@ export function CommandDetailsPage() {
   const ItemsContent = (
     <>
       {command.items.length === 0 ? (
-        <div className="flex flex-col items-center py-10 text-slate-300 gap-2">
-          <FaShoppingCart className="text-3xl" />
-          <p className="text-sm text-slate-400">Nenhum item ainda</p>
+        <div className="flex flex-col items-center justify-center py-12 text-slate-300 gap-2">
+          <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+            <FaShoppingCart className="text-base" />
+          </div>
+          <p className="text-sm font-medium text-slate-400">
+            Nenhum item lançado ainda
+          </p>
         </div>
       ) : (
-        <div>
-          {command.items.map((item) => (
-            <ItemRow key={item.id} item={item} />
-          ))}
-          <div className="flex justify-between items-center pt-4 mt-2 border-t border-slate-100">
-            <span className="text-sm font-semibold text-slate-500">Total</span>
-            <span className="text-xl font-extrabold text-slate-900 tabular-nums">
+        <div className="flex flex-col h-full">
+          <div className="divide-y divide-slate-100 flex-1">
+            {command.items.map((item) => (
+              <ItemRow key={item.id} item={item} />
+            ))}
+          </div>
+
+          <div className="pt-4 mt-4 border-t border-slate-200 bg-slate-50/50 -mx-6 -mb-6 p-6 rounded-b-2xl flex justify-between items-center">
+            <div className="flex items-center gap-2 text-slate-500">
+              <FaReceipt className="text-xs" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Subtotal
+              </span>
+            </div>
+            <span className="text-2xl font-black text-slate-900 tabular-nums">
               {formatCurrency(command.total)}
             </span>
           </div>
@@ -482,7 +529,6 @@ export function CommandDetailsPage() {
     <>
       <Navbar />
 
-      {/* Modal */}
       {modalProduct && (
         <AddItemModal
           product={modalProduct}
@@ -495,59 +541,87 @@ export function CommandDetailsPage() {
 
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-          {/* Back button */}
+          {/* Botão de Voltar */}
           <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-700 mb-6 transition"
+            onClick={() => navigate("/commands")}
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-600 mb-6 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm transition-all"
           >
-            <FaArrowLeft className="text-xs" /> Voltar
+            <FaArrowLeft className="text-[10px]" /> Voltar para Comandas
           </button>
 
-          {/* Command header card */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 mb-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          {/* Card Principal da Comanda */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-1">
-                  Detalhe
-                </p>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none">
-                  Comanda #{command.id}
-                </h1>
-                <p className="text-slate-400 text-sm mt-1">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">
+                    Mesa / Cliente
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      command.closed
+                        ? "bg-slate-100 text-slate-500"
+                        : "bg-emerald-50 text-emerald-700"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${command.closed ? "bg-slate-400" : "bg-emerald-500 animate-pulse"}`}
+                    />
+                    {command.closed ? "Fechada" : "Ativa"}
+                  </span>
+                </div>
+
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
                   {command.customer}
-                </p>
+                </h1>
+
+                <div className="text-xs font-medium text-slate-400 mt-2 space-y-0.5">
+                  <p>
+                    🔹 ID da Comanda:{" "}
+                    <span className="font-semibold text-slate-600">
+                      #{command.id}
+                    </span>
+                  </p>
+                  {command.openedBy && (
+                    <p>
+                      📩 Abertura: por{" "}
+                      <span className="font-semibold text-slate-500">
+                        {command.openedBy.name}
+                      </span>
+                    </p>
+                  )}
+                  {command.closed && command.closedBy && (
+                    <p>
+                      🔒 Fechamento: por{" "}
+                      <span className="font-semibold text-slate-500">
+                        {command.closedBy.name}
+                      </span>
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <span
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl ${
-                    command.closed
-                      ? "bg-slate-100 text-slate-500"
-                      : "bg-emerald-50 text-emerald-700"
-                  }`}
-                >
-                  {command.closed ? "Fechada" : "Aberta"}
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-center items-start md:items-end min-w-[160px]">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Total Acumulado
                 </span>
-                <span className="text-xl sm:text-2xl font-extrabold text-slate-900 tabular-nums">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums mt-0.5">
                   {formatCurrency(command.total)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* ── Mobile Tab Nav (visible on < lg) ── */}
-          <div className="flex lg:hidden bg-white rounded-2xl border border-slate-100 shadow-sm p-1 mb-5 gap-1">
-            {[
-              { key: "items", label: `Itens (${command.items.length})` },
-              { key: "catalog", label: "Adicionar" },
-            ].map((tab) => (
+          {/* NAVEGAÇÃO MOBILE TABS */}
+          <div className="flex lg:hidden bg-white p-1 rounded-xl border border-slate-100 shadow-sm mb-5 gap-1">
+            {mobileTabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setMobileTab(tab.key as "items" | "catalog")}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
+                onClick={() => setMobileTab(tab.key)}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
                   mobileTab === tab.key
                     ? "bg-indigo-500 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
                 {tab.label}
@@ -555,49 +629,58 @@ export function CommandDetailsPage() {
             ))}
           </div>
 
-          {/* ── Mobile: single panel ── */}
+          {/* LAYOUT MOBILE */}
           <div className="lg:hidden space-y-5">
             {mobileTab === "items" ? (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                  Itens pedidos
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
+                  Itens Consumidos
                 </h2>
                 {ItemsContent}
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                  Adicionar produto
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
+                  Lançar Itens
                 </h2>
                 {CatalogContent}
               </div>
             )}
 
-            {/* QR always visible on mobile below tabs */}
             <QRPanel command={command} />
           </div>
 
-          {/* ── Desktop: 3-column grid (visible on lg+) ── */}
-          <div className="hidden lg:grid lg:grid-cols-3 gap-5">
-            {/* Left column */}
-            <div className="lg:col-span-1 space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                  Itens pedidos
-                </h2>
-                {ItemsContent}
+          {/* LAYOUT DESKTOP */}
+          <div
+            className={`hidden lg:grid gap-6 ${canManageItems ? "lg:grid-cols-3" : "lg:grid-cols-1 max-w-xl mx-auto"}`}
+          >
+            {/* Coluna da Esquerda: Itens + QR Code */}
+            <div
+              className={
+                canManageItems ? "lg:col-span-1 space-y-6" : "space-y-6"
+              }
+            >
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
+                    Itens Consumidos
+                  </h2>
+                  {ItemsContent}
+                </div>
               </div>
 
               <QRPanel command={command} />
             </div>
 
-            {/* Right column: catalog */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                Adicionar produto
-              </h2>
-              {CatalogContent}
-            </div>
+            {/* Coluna da Direita: Catálogo para Adicionar */}
+            {canManageItems && (
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col h-fit">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
+                  Lançar Novos Produtos
+                </h2>
+                {CatalogContent}
+              </div>
+            )}
           </div>
         </div>
       </div>

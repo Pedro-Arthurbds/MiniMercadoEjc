@@ -1,291 +1,196 @@
-import toast from 'react-hot-toast'
-import { api } from '../services/api'
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { api } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import { FaTrash, FaSave, FaEdit, FaTimes } from "react-icons/fa";
+import { ProductForm } from "./ProductForm";
 
-// ── Tipagem das props ────────────────────────────────────────
-// "Props" são os dados que o componente pai passa para este componente.
-// TypeScript exige que a gente declare o "formato" esperado de cada prop.
 type ProductProps = {
-  product: {       // objeto com todos os dados do produto
-    id: number
-    name: string
-    category: string
-    price: number
-    stock: number
-  }
+  product: {
+    id: number;
+    name: string;
+    category: string;
+    price: number;
+    stock: number;
+  };
+  onDeleted: () => void;
+};
 
-  onDeleted: () => void  // função de callback: avisa o pai que algo mudou
-                         // (geralmente para recarregar a lista de produtos)
-}
+export function ProductCard({ product, onDeleted }: ProductProps) {
+  const { hasRole } = useAuth();
+  const canManageStock = hasRole("MINIMERCADO");
 
-// ── Declaração do componente ─────────────────────────────────
-// Desestruturamos as props diretamente no parâmetro para facilitar o uso
-export function ProductCard({
-  product,
-  onDeleted,
-}: ProductProps) {
+  const [newStock, setNewStock] = useState(product.stock);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
 
-  // ── [DELETE] Deletar produto ───────────────────────────────
-  // Chama a API para remover o produto pelo ID e avisa o pai para
-  // atualizar a lista.
-async function handleDeleteProduct() {
-  const confirmed = confirm(
-    `Deseja deletar ${product.name}?`
-  )
+  useEffect(() => {
+    setNewStock(product.stock);
+  }, [product.stock]);
 
-  if (!confirmed) return
+  async function handleDeleteProduct() {
+    const confirmed = confirm(`Deseja deletar "${product.name}"?`);
+    if (!confirmed) return;
 
-  await api.delete(
-    `/products/${product.id}`
-  )
-
-  toast.success('Produto removido')
-
-  onDeleted()
-}
-
-  // ── [PUT] Atualizar estoque ────────────────────────────────
-  // Recebe o novo valor de estoque e envia todos os campos do produto
-  // para a rota de atualização (a API PUT exige o objeto completo).
-  async function updateStock(newStock: number) {
-    await api.put(
-      `/products/${product.id}`,
-      {
-        name: product.name,
-        category: product.category,
-        price: product.price,
-        stock: newStock,       // apenas o estoque muda de fato
-      }
-    )
-
-    toast.success('Estoque atualizado')
-
-    onDeleted()  // recarrega a lista após a atualização
-  }
-
-  // ── [POST] Registrar venda ─────────────────────────────────
-  // Envia uma venda de 1 unidade do produto para a API.
-  // O try/catch captura erros (ex: estoque zerado) e exibe um alerta.
-  async function handleSale() {
     try {
-      await api.post(
-        '/sales',
-        {
-          productId: product.id,
-          quantity: 1,          // sempre vende 1 unidade por clique
-        }
-      )
-
-      onDeleted()  // recarrega a lista para refletir o novo estoque
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      // A API retorna erro 400 quando o estoque é insuficiente
-      toast.error("Produto sem estoque disponível."); // ⚠️ typo: "insulficiente" → "insuficiente"
+      await api.delete(`/products/${product.id}`);
+      toast.success("Produto removido");
+      onDeleted();
+    } catch {
+      toast.error("Erro ao remover produto");
     }
   }
 
-  // ── Variável auxiliar ──────────────────────────────────────
-  // true quando o estoque chega a 0 — usada para travar botões e
-  // mudar o visual do cartão (cinza + badge "ESGOTADO")
-  const isOutOfStock = product.stock <= 0
+  async function handleUpdateStock(e: React.FormEvent) {
+    e.preventDefault();
 
-  const isLowStock =
-  product.stock > 0 &&
-  product.stock <= 5
+    if (Number.isNaN(newStock) || newStock < 0) {
+      toast.error("Quantidade inválida");
+      return;
+    }
 
-  // ── Renderização (JSX) ─────────────────────────────────────
-  // O que está dentro do return é o HTML do componente.
-  // As classes do Tailwind controlam layout, cores e responsividade.
-  return (
+    if (newStock === product.stock) return;
 
-    // Container principal do cartão
-    // Muda de aparência dinamicamente baseado em `isOutOfStock`
-    <div
-      className={`
-        p-6 rounded-3xl border
-        flex flex-col gap-5
-        transition-all duration-300
-        backdrop-blur-sm
-        ${
-          isOutOfStock
-            ? 'bg-gray-100 border-gray-200 opacity-80'
-            : `
-              bg-white/90
-              border-gray-100
-              hover:shadow-2xl
-              hover:-translate-y-1
-            `
+    setSaving(true);
+    try {
+      await api.put(`/products/${product.id}`, {
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        stock: newStock,
+      });
+      toast.success("Estoque atualizado");
+      onDeleted();
+    } catch {
+      toast.error("Erro ao atualizar estoque");
+    } finally {
+      setSaving(false);
+    }
   }
-`}
+
+  const isOutOfStock = product.stock <= 0;
+  const isLowStock = product.stock > 0 && product.stock <= 5;
+
+  const statusBadge = isOutOfStock
+    ? { label: "Esgotado", className: "bg-rose-100 text-rose-700" }
+    : isLowStock
+      ? { label: "Baixo estoque", className: "bg-amber-100 text-amber-700" }
+      : { label: "Em estoque", className: "bg-emerald-100 text-emerald-700" };
+
+  // ── Modo edição: mostra o formulário inline ──
+  if (editing && canManageStock) {
+    return (
+      <div className="rounded-2xl border border-indigo-200 ring-2 ring-indigo-100 bg-white shadow-sm p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-700">Editar produto</h3>
+          <button
+            onClick={() => setEditing(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+          >
+            <FaTimes className="text-sm" />
+          </button>
+        </div>
+
+        <ProductForm
+          product={product}
+          onProductCreated={() => {
+            setEditing(false);
+            onDeleted();
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </div>
+    );
+  }
+
+  // ── Modo normal ──
+  return (
+    <div
+      className={`rounded-2xl border shadow-sm p-5 flex flex-col gap-4 transition-all ${
+        isOutOfStock
+          ? "bg-slate-50 border-slate-200 opacity-80"
+          : "bg-white border-slate-100 hover:shadow-md"
+      }`}
     >
+      {/* Categoria + nome + botão editar */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <span className="inline-block text-xs font-semibold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg">
+            {product.category}
+          </span>
+          <h2 className="text-lg font-bold text-slate-800 mt-3 leading-tight truncate">
+            {product.name}
+          </h2>
+        </div>
 
-      {/* ── Cabeçalho: categoria + nome ── */}
-      <div>
-        {/* Badge de categoria (ex: "Bebidas", "Laticínios") */}
-        <span className="
-          inline-block
-          text-xs
-          font-semibold
-          bg-blue-100
-          text-blue-700
-          px-3
-          py-1
-          rounded-full
-        ">
-          {product.category}
-        </span>
-
-        <h2 className="text-2xl font-black mt-4 text-gray-800">
-          {product.name}
-        </h2>
+        {canManageStock && (
+          <button
+            onClick={() => setEditing(true)}
+            className="flex-shrink-0 mt-0.5 p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition"
+            title="Editar produto"
+          >
+            <FaEdit className="text-sm" />
+          </button>
+        )}
       </div>
 
-      {/* ── Preço, estoque e badge de esgotado ── */}
-      <div>
-        <p className="text-3xl font-black text-green-600 mt-2">
+      {/* Preço + status */}
+      <div className="flex items-end justify-between">
+        <p className="text-2xl font-extrabold text-slate-800 tabular-nums">
           R$ {product.price.toFixed(2)}
         </p>
-
-        <div className="mt-3">
-      {
-        isOutOfStock ? (
-          <span className="
-            bg-red-100
-            text-red-700
-            px-3
-            py-1
-            rounded-full
-            text-sm
-            font-bold
-          ">
-            Esgotado
-          </span>
-        ) : isLowStock ? (
-          <span className="
-            bg-yellow-100
-            text-yellow-700
-            px-3
-            py-1
-            rounded-full
-            text-sm
-            font-bold
-          ">
-            Baixo estoque
-          </span>
-        ) : (
-          <span className="
-            bg-green-100
-            text-green-700
-            px-3
-            py-1
-            rounded-full
-            text-sm
-            font-bold
-          ">
-            Em estoque
-          </span>
-        )
-      }
-
-      <p className="mt-2 text-gray-500">
-        {product.stock} unidades
-      </p>
-    </div>
-      </div>
-
-      {/* ── Controles de estoque (- e +) ── */}
-      {/* Chama updateStock com stock - 1 ou stock + 1 a cada clique */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-2">
-        <button
-          onClick={() => {
-            if (product.stock > 0) {
-              updateStock(product.stock - 1)
-            }
-          }}
-          disabled={product.stock <= 0}
-          className="
-          bg-red-500
-          hover:bg-red-600
-          transition-all
-          text-white
-          w-full sm:w-11 h-11
-          rounded-xl
-          cursor-pointer
-          text-xl
-          font-bold
-        "
+        <span
+          className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusBadge.className}`}
         >
-          -
-        </button>
-
-        {/* Exibe o valor atual do estoque entre os botões */}
-        <span className="text-3xl font-black min-w-15 text-center bg-gray-100 rounded-xl py-2 px-6 sm:px-2 w-full sm:w-auto">
-          {product.stock}
+          {statusBadge.label}
         </span>
-
-        <button
-          onClick={() => updateStock(product.stock + 1)}
-          className="
-          bg-green-500
-          hover:bg-green-600
-          transition-all
-          text-white
-          w-full sm:w-11 h-11
-          rounded-xl
-          cursor-pointer
-          text-xl
-          font-bold
-        "
-        >
-          +
-        </button>
       </div>
 
-      {/* ── Botão Vender ── */}
-      {/* disabled={isOutOfStock} impede o clique quando esgotado */}
-      {/* A aparência também muda: azul normal → cinza bloqueado    */}
-      <button
-        onClick={handleSale}
-        disabled={isOutOfStock}
-        className={`
-          text-white
-          py-3
-          rounded-xl
-          font-bold
-          transition-all
-          shadow-md
-          hover:scale-[1.02]
-          active:scale-[0.98]
-          ${
-            isOutOfStock
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }
-        `}
-      >
-        Vender
-      </button>
+      <p className="text-sm text-slate-400 -mt-2">
+        {product.stock} {product.stock === 1 ? "unidade" : "unidades"} em
+        estoque
+      </p>
 
-      {/* ── Botão Deletar ── */}
-      {/* Sempre visível e ativo — remove o produto permanentemente */}
-      <button
-        onClick={handleDeleteProduct}
-        className="
-          bg-red-600
-          hover:bg-red-700
-          transition-all
-          text-white
-          py-3
-          rounded-xl
-          font-bold
-          shadow-md
-          hover:scale-[1.02]
-          active:scale-[0.98]
-        "
-      >
-        Deletar
-      </button>
+      {/* Controle de estoque */}
+      {canManageStock && (
+        <form
+          onSubmit={handleUpdateStock}
+          className="flex items-center gap-2 pt-3 border-t border-slate-100"
+        >
+          <div className="flex-1">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Ajustar estoque
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={newStock}
+              onChange={(e) => setNewStock(Number(e.target.value))}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 text-sm text-center font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={saving || newStock === product.stock}
+            className="mt-5 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+          >
+            <FaSave className="text-xs" />
+            {saving ? "…" : "Salvar"}
+          </button>
+        </form>
+      )}
 
+      {/* Deletar */}
+      {canManageStock && (
+        <button
+          onClick={handleDeleteProduct}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-colors"
+        >
+          <FaTrash className="text-xs" />
+          Remover produto
+        </button>
+      )}
     </div>
-  )
+  );
 }

@@ -20,7 +20,9 @@ type Product = { id: number; name: string; stock: number };
 type CommandItem = {
   id: number;
   quantity: number;
+  createdAt: string;
   product: { id: number; name: string };
+  addedBy?: { id: number; name: string } | null;
 };
 type Command = {
   id: number;
@@ -30,6 +32,8 @@ type Command = {
   createdAt: string;
   closedAt?: string | null;
   items: CommandItem[];
+  openedBy?: { id: number; name: string } | null;
+  closedBy?: { id: number; name: string } | null;
 };
 type Sale = {
   id: number;
@@ -362,6 +366,7 @@ export function DashboardPage() {
                   product?: string;
                   quantity?: number;
                   total?: number;
+                  byName?: string | null;
                 }> = [];
 
                 // Adicionar eventos de abertura de comanda
@@ -370,13 +375,14 @@ export function DashboardPage() {
                     type: "opened",
                     date: cmd.createdAt,
                     customer: cmd.customer,
+                    byName: cmd.openedBy?.name,
                   });
-                  // Adicionar evento de fechamento se fechada
                   if (cmd.closed && cmd.closedAt) {
                     allEvents.push({
                       type: "closed",
                       date: cmd.closedAt,
                       customer: cmd.customer,
+                      byName: cmd.closedBy?.name,
                     });
                   }
                 });
@@ -397,14 +403,14 @@ export function DashboardPage() {
                   cmd.items.forEach((item) => {
                     allEvents.push({
                       type: "item",
-                      date: cmd.createdAt,
+                      date: item.createdAt, // ← agora usa a data do item, não da comanda
                       customer: cmd.customer,
                       product: item.product.name,
                       quantity: item.quantity,
+                      byName: item.addedBy?.name,
                     });
                   });
                 });
-
                 // Ordenar por data decrescente e pegar os 8 mais recentes
                 const sortedEvents = allEvents
                   .sort(
@@ -440,6 +446,7 @@ export function DashboardPage() {
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-medium">
                                   Comanda aberta
+                                  {event.byName ? ` por ${event.byName}` : ""}
                                 </span>
                                 <p className="text-xs text-slate-400">
                                   {formatDateTime(event.date)}
@@ -464,6 +471,7 @@ export function DashboardPage() {
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-medium">
                                   Comanda fechada
+                                  {event.byName ? ` por ${event.byName}` : ""}
                                 </span>
                                 <p className="text-xs text-slate-400">
                                   {formatDateTime(event.date)}
@@ -524,6 +532,15 @@ export function DashboardPage() {
                                     <span className="font-medium">
                                       {event.customer}
                                     </span>
+                                    {event.byName && (
+                                      <>
+                                        {" "}
+                                        · adicionado por{" "}
+                                        <span className="font-medium">
+                                          {event.byName}
+                                        </span>
+                                      </>
+                                    )}
                                   </p>
                                 </div>
                               </div>
