@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 
 import { api } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 type Command = {
   id: number;
@@ -10,6 +11,8 @@ type Command = {
   total: number;
   closed: boolean;
   createdAt?: string;
+  openedBy?: { id: number; name: string } | null;
+  closedBy?: { id: number; name: string } | null;
 };
 
 type Props = {
@@ -160,6 +163,7 @@ function QRModal({ command, onClose }: QRModalProps) {
 export function CommandCard({ command, onUpdated }: Props) {
   const navigate = useNavigate();
   const [showQR, setShowQR] = useState(false);
+  const { hasRole } = useAuth();
 
   async function handleCloseCommand(e: React.MouseEvent) {
     e.stopPropagation();
@@ -190,7 +194,13 @@ export function CommandCard({ command, onUpdated }: Props) {
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
               Comanda #{command.id}
+              {command.openedBy && ` · aberta por ${command.openedBy.name}`}
             </p>
+            {command.closed && command.closedBy && (
+              <p className="text-xs text-gray-400">
+                fechada por {command.closedBy.name}
+              </p>
+            )}
           </div>
 
           <span
@@ -234,7 +244,7 @@ export function CommandCard({ command, onUpdated }: Props) {
             QR Code
           </button>
 
-          {!command.closed && (
+          {!command.closed && hasRole("MINIMERCADO") && (
             <button
               onClick={handleCloseCommand}
               className="

@@ -65,8 +65,9 @@ model Command {
 }
 
 model CommandItem {
-  id       Int @id @default(autoincrement())
-  quantity Int
+  id        Int      @id @default(autoincrement())
+  quantity  Int
+  createdAt DateTime @default(now())
 
   command   Command @relation(fields: [commandId], references: [id])
   commandId Int

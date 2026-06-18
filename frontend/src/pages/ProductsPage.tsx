@@ -12,6 +12,7 @@ import {
   FaTag,
   FaInbox,
 } from "react-icons/fa";
+import { useAuth } from "../contexts/AuthContext";
 
 type Product = {
   id: number;
@@ -41,9 +42,7 @@ function SummaryCard({
     <Wrapper
       onClick={onClick}
       className={`bg-white rounded-2xl border shadow-sm p-4 sm:p-6 flex items-center gap-3 sm:gap-4 w-full text-left transition-all ${
-        active
-          ? "border-rose-300 ring-2 ring-rose-200"
-          : "border-slate-100"
+        active ? "border-rose-300 ring-2 ring-rose-200" : "border-slate-100"
       } ${onClick ? "cursor-pointer hover:shadow-md" : ""}`}
     >
       <div
@@ -64,6 +63,7 @@ function SummaryCard({
 }
 
 export function ProductsPage() {
+  const { hasRole } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -141,12 +141,14 @@ export function ProductsPage() {
               <p className="text-xs sm:text-sm text-slate-400 capitalize hidden sm:block">
                 {today}
               </p>
-              <button
-                onClick={() => setShowForm((prev) => !prev)}
-                className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
-              >
-                {showForm ? "✕ Cancelar" : "+ Novo Produto"}
-              </button>
+              {hasRole("MINIMERCADO") && (
+                <button
+                  onClick={() => setShowForm((prev) => !prev)}
+                  className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+                >
+                  {showForm ? "✕ Cancelar" : "+ Novo Produto"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -175,7 +177,7 @@ export function ProductsPage() {
           </div>
 
           {/* Product Form (collapsible) */}
-          {showForm && (
+          {showForm && hasRole("MINIMERCADO") && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 mb-5 sm:mb-6">
               <h2 className="text-sm font-bold text-slate-700 mb-4 sm:mb-5">
                 Cadastrar Novo Produto
@@ -247,8 +249,8 @@ export function ProductsPage() {
                 {search
                   ? `Nenhum produto encontrado para "${search}"`
                   : showCriticalOnly
-                  ? "Nenhum produto com estoque crítico"
-                  : "Nenhum produto nesta categoria"}
+                    ? "Nenhum produto com estoque crítico"
+                    : "Nenhum produto nesta categoria"}
               </p>
               {search && (
                 <button

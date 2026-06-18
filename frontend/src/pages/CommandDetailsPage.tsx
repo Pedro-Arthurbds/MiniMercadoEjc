@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Navbar } from "../components/Navbar";
+import { useAuth } from "../contexts/AuthContext";
 import {
   FaArrowLeft,
   FaPlus,
@@ -27,6 +28,7 @@ type CommandItem = {
   id: number;
   quantity: number;
   product: Product;
+  addedBy?: { id: number; name: string } | null;
 };
 
 type Command = {
@@ -35,6 +37,8 @@ type Command = {
   total: number;
   closed: boolean;
   items: CommandItem[];
+  openedBy?: { id: number; name: string } | null;
+  closedBy?: { id: number; name: string } | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -55,6 +59,7 @@ function ItemRow({ item }: { item: CommandItem }) {
         </p>
         <p className="text-xs text-slate-400 mt-0.5">
           {item.quantity}× · {formatCurrency(item.product.price)} cada
+          {item.addedBy && ` · ${item.addedBy.name}`}
         </p>
       </div>
       <span className="text-sm font-bold text-slate-700 flex-shrink-0 tabular-nums">
@@ -200,9 +205,7 @@ function AddItemModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* Sheet on mobile, centered modal on sm+ */}
       <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-xl p-6 pb-8 sm:pb-6">
-        {/* Drag handle (mobile only) */}
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5 sm:hidden" />
 
         <div className="flex items-start justify-between mb-5">
@@ -289,6 +292,9 @@ export function CommandDetailsPage() {
   // Mobile tab state: 'items' | 'catalog'
   const [mobileTab, setMobileTab] = useState<"items" | "catalog">("items");
 
+  const { hasRole } = useAuth();
+  const canManageItems = hasRole("MINIMERCADO");
+
   async function loadCommand() {
     const response = await api.get(`/commands/${id}`);
     setCommand(response.data);
@@ -359,6 +365,14 @@ export function CommandDetailsPage() {
     );
   }
 
+  // Calculado aqui, depois de garantir que `command` não é null
+  const mobileTabs = [
+    { key: "items" as const, label: `Itens (${command.items.length})` },
+    ...(canManageItems
+      ? [{ key: "catalog" as const, label: "Adicionar" }]
+      : []),
+  ];
+
   // ── Shared: product catalog panel content ─────────────────────────────────
 
   const CatalogContent = (
@@ -369,7 +383,6 @@ export function CommandDetailsPage() {
         </div>
       ) : (
         <>
-          {/* Search */}
           <div className="relative mb-4">
             <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none" />
             <input
@@ -381,7 +394,6 @@ export function CommandDetailsPage() {
             />
           </div>
 
-          {/* Product list */}
           <div
             className="overflow-y-auto space-y-2 flex-1 pr-0.5"
             style={{ maxHeight: "clamp(260px, 50vh, 520px)" }}
@@ -482,7 +494,6 @@ export function CommandDetailsPage() {
     <>
       <Navbar />
 
-      {/* Modal */}
       {modalProduct && (
         <AddItemModal
           product={modalProduct}
@@ -495,7 +506,6 @@ export function CommandDetailsPage() {
 
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-          {/* Back button */}
           <button
             onClick={() => navigate("/")}
             className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-700 mb-6 transition"
@@ -503,7 +513,6 @@ export function CommandDetailsPage() {
             <FaArrowLeft className="text-xs" /> Voltar
           </button>
 
-          {/* Command header card */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 mb-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -515,6 +524,10 @@ export function CommandDetailsPage() {
                 </h1>
                 <p className="text-slate-400 text-sm mt-1">
                   {command.customer}
+                  {command.openedBy && ` · aberta por ${command.openedBy.name}`}
+                  {command.closed &&
+                    command.closedBy &&
+                    ` · fechada por ${command.closedBy.name}`}
                 </p>
               </div>
 
@@ -537,13 +550,10 @@ export function CommandDetailsPage() {
 
           {/* ── Mobile Tab Nav (visible on < lg) ── */}
           <div className="flex lg:hidden bg-white rounded-2xl border border-slate-100 shadow-sm p-1 mb-5 gap-1">
-            {[
-              { key: "items", label: `Itens (${command.items.length})` },
-              { key: "catalog", label: "Adicionar" },
-            ].map((tab) => (
+            {mobileTabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setMobileTab(tab.key as "items" | "catalog")}
+                onClick={() => setMobileTab(tab.key)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
                   mobileTab === tab.key
                     ? "bg-indigo-500 text-white shadow-sm"
@@ -573,14 +583,20 @@ export function CommandDetailsPage() {
               </div>
             )}
 
-            {/* QR always visible on mobile below tabs */}
             <QRPanel command={command} />
           </div>
 
-          {/* ── Desktop: 3-column grid (visible on lg+) ── */}
-          <div className="hidden lg:grid lg:grid-cols-3 gap-5">
-            {/* Left column */}
-            <div className="lg:col-span-1 space-y-4">
+          {/* ── Desktop: grid (visible on lg+) ── */}
+          <div
+            className={`hidden lg:grid gap-5 ${
+              canManageItems ? "lg:grid-cols-3" : "lg:grid-cols-1 max-w-md"
+            }`}
+          >
+            <div
+              className={
+                canManageItems ? "lg:col-span-1 space-y-4" : "space-y-4"
+              }
+            >
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                 <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
                   Itens pedidos
@@ -591,13 +607,14 @@ export function CommandDetailsPage() {
               <QRPanel command={command} />
             </div>
 
-            {/* Right column: catalog */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                Adicionar produto
-              </h2>
-              {CatalogContent}
-            </div>
+            {canManageItems && (
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Adicionar produto
+                </h2>
+                {CatalogContent}
+              </div>
+            )}
           </div>
         </div>
       </div>
