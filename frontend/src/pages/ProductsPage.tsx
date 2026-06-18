@@ -46,7 +46,7 @@ function SummaryCard({
       } ${onClick ? "cursor-pointer hover:shadow-md" : ""}`}
     >
       <div
-        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-base sm:text-lg flex-shrink-0 ${accent}`}
+        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-base sm:text-lg shrink-0 ${accent}`}
       >
         {icon}
       </div>
@@ -92,12 +92,12 @@ export function ProductsPage() {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
       selectedCategory === "" ? true : p.category === selectedCategory;
-    const matchesCritical = showCriticalOnly ? p.stock <= 10 : true;
+    const matchesCritical = showCriticalOnly ? p.stock <= 5 : true; // Alinhado com o 'Baixo estoque' de 5 unidades
     return matchesSearch && matchesCategory && matchesCritical;
   });
 
-  const criticalStock = products.filter((p) => p.stock <= 10).length;
-  const healthyStock = products.filter((p) => p.stock > 10).length;
+  const criticalStock = products.filter((p) => p.stock <= 5).length;
+  const healthyStock = products.filter((p) => p.stock > 5).length;
 
   const today = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -152,7 +152,7 @@ export function ProductsPage() {
             </div>
           </div>
 
-          {/* Summary Cards — 1 col mobile, 3 cols sm+ */}
+          {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 mb-6 sm:mb-8">
             <SummaryCard
               label="Total de Produtos"
@@ -193,7 +193,6 @@ export function ProductsPage() {
 
           {/* Filters + Search */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 sm:p-4 mb-5 sm:mb-6 flex flex-col gap-3">
-            {/* Search */}
             <div className="relative">
               <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none" />
               <input
@@ -205,9 +204,8 @@ export function ProductsPage() {
               />
             </div>
 
-            {/* Category pills + critical toggle + count */}
             <div className="flex items-center gap-2 flex-wrap">
-              <FaTag className="text-slate-300 text-xs flex-shrink-0 hidden sm:block" />
+              <FaTag className="text-slate-300 text-xs shrink-0 hidden sm:block" />
               <div className="flex gap-2 flex-wrap flex-1">
                 {categories.map((cat) => (
                   <button
@@ -241,7 +239,7 @@ export function ProductsPage() {
             </div>
           </div>
 
-          {/* Product Grid — 1 col mobile, 2 md, 3 lg */}
+          {/* Product Grid */}
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <FaInbox className="text-5xl text-slate-300" />

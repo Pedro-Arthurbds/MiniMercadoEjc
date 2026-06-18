@@ -14,10 +14,21 @@ export function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    
     try {
       const loggedUser = await login(email, password);
-      navigate(loggedUser.role === "ADMIN" ? "/" : "/products");
-    } catch {
+      
+      // O uso do "?" (Optional Chaining) evita que o app quebre 
+      // caso o AuthContext não retorne o objeto loggedUser
+      if (loggedUser?.role === "ADMIN") {
+        navigate("/");
+      } else {
+        navigate("/products");
+      }
+      
+    } catch (err) {
+      // O console.error vai te mostrar no F12 exatamente o que deu erro
+      console.error("Erro detalhado do login:", err);
       setError("Email ou senha inválidos");
     } finally {
       setLoading(false);
