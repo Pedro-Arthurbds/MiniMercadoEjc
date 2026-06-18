@@ -11,6 +11,7 @@ type Command = {
   total: number;
   closed: boolean;
   createdAt?: string;
+  publicCode: string;
   openedBy?: { id: number; name: string } | null;
   closedBy?: { id: number; name: string } | null;
 };
@@ -44,7 +45,7 @@ type QRModalProps = {
 
 function QRModal({ command, onClose }: QRModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const commandUrl = `${window.location.origin}/commands/${command.id}`;
+  const commandUrl = `${window.location.origin}/c/${command.publicCode}`;
 
   useEffect(() => {
     if (!canvasRef.current) return;

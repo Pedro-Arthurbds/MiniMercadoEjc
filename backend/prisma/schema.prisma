@@ -57,6 +57,8 @@ model Command {
   closed   Boolean   @default(false)
   closedAt DateTime?
 
+  publicCode String @unique @default(uuid())
+
   openedByUserId Int?
   openedBy       User? @relation("OpenedCommands", fields: [openedByUserId], references: [id])
 

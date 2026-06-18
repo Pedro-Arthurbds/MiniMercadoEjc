@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -9,26 +10,21 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { returnTo?: string })?.returnTo;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
     try {
       const loggedUser = await login(email, password);
-      
-      // O uso do "?" (Optional Chaining) evita que o app quebre 
-      // caso o AuthContext não retorne o objeto loggedUser
-      if (loggedUser?.role === "ADMIN") {
-        navigate("/");
+      if (returnTo) {
+        navigate(returnTo);
       } else {
-        navigate("/products");
+        navigate(loggedUser.role === "ADMIN" ? "/" : "/products");
       }
-      
-    } catch (err) {
-      // O console.error vai te mostrar no F12 exatamente o que deu erro
-      console.error("Erro detalhado do login:", err);
+    } catch {
       setError("Email ou senha inválidos");
     } finally {
       setLoading(false);

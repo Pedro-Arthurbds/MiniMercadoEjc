@@ -351,6 +351,47 @@ app.post(
   },
 );
 
+// Rota pública — qualquer pessoa com o link pode ver
+app.get("/c/:code", async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    const command = await prisma.command.findUnique({
+      where: { publicCode: code },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, price: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!command) {
+      return res.status(404).json({ error: "Comanda não encontrada" });
+    }
+
+    // Retorna só o necessário pra visualização pública
+    res.json({
+      id: command.id,
+      customer: command.customer,
+      total: command.total,
+      closed: command.closed,
+      createdAt: command.createdAt,
+      items: command.items.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+        product: item.product,
+      })),
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro ao buscar comanda" });
+  }
+});
+
 app.get("/commands/:id", authenticate, async (request, response) => {
   try {
     const { id } = request.params;

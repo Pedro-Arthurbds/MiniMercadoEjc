@@ -1,15 +1,11 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { api } from "../services/api";
 
 type Role = "ADMIN" | "MINIMERCADO" | "SECRETARIA";
 
-type User = {
+export type User = {
   id: number;
   name: string;
   role: Role;
@@ -18,18 +14,16 @@ type User = {
 type AuthContextType = {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
-  // Compatível com o ProductCard e outros componentes existentes
   hasRole: (...roles: Role[]) => boolean;
-  // Helpers semânticos para usar no JSX
   can: {
-    closeCommand: boolean; // MINIMERCADO, ADMIN
-    openCommand: boolean; // MINIMERCADO, SECRETARIA, ADMIN
-    editStock: boolean; // MINIMERCADO, ADMIN
-    registerSale: boolean; // MINIMERCADO, ADMIN
-    viewReports: boolean; // ADMIN
+    closeCommand: boolean;
+    openCommand: boolean;
+    editStock: boolean;
+    registerSale: boolean;
+    viewReports: boolean;
   };
 };
 
@@ -52,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string): Promise<User> {
     const response = await api.post("/auth/login", { email, password });
     const { token: newToken, user: newUser } = response.data;
 
@@ -60,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("user", JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    return newUser;
   }
 
   function logout() {
@@ -71,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const role = user?.role;
 
-  // ADMIN sempre passa — mesma lógica do middleware do backend
   function hasRole(...roles: Role[]) {
     if (!role) return false;
     if (role === "ADMIN") return true;

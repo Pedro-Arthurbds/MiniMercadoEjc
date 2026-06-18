@@ -40,6 +40,7 @@ type Command = {
   total: number;
   closed: boolean;
   items: CommandItem[];
+  publicCode: string;
   openedBy?: { id: number; name: string } | null;
   closedBy?: { id: number; name: string } | null;
 };
@@ -69,7 +70,9 @@ function ItemRow({ item }: { item: CommandItem }) {
           {item.addedBy && (
             <>
               <span>·</span>
-              <span className="text-indigo-500 font-semibold">👤 {item.addedBy.name}</span>
+              <span className="text-indigo-500 font-semibold">
+                👤 {item.addedBy.name}
+              </span>
             </>
           )}
         </p>
@@ -118,7 +121,7 @@ function QuantitySelector({
 
 function QRPanel({ command }: { command: Command }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const commandUrl = `${window.location.origin}/commands/${command.id}`;
+  const commandUrl = `${window.location.origin}/c/${command.publicCode}`;
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -225,7 +228,9 @@ function AddItemModal({
 
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h3 className="text-lg font-extrabold text-slate-800">{product.name}</h3>
+            <h3 className="text-lg font-extrabold text-slate-800">
+              {product.name}
+            </h3>
             <p className="text-xs font-semibold text-indigo-500 mt-1">
               {formatCurrency(product.price)} · {product.stock} disponíveis
             </p>
@@ -410,7 +415,9 @@ export function CommandDetailsPage() {
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <p className="text-2xl mb-2">🔎</p>
-                <p className="text-sm font-medium">Nenhum produto encontrado.</p>
+                <p className="text-sm font-medium">
+                  Nenhum produto encontrado.
+                </p>
                 {search && (
                   <button
                     onClick={() => setSearch("")}
@@ -439,9 +446,13 @@ export function CommandDetailsPage() {
                         {product.name}
                       </p>
                       <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                        <span className="text-emerald-600">{formatCurrency(product.price)}</span>
+                        <span className="text-emerald-600">
+                          {formatCurrency(product.price)}
+                        </span>
                         {" · "}
-                        <span className={product.stock <= 5 ? "text-amber-500" : ""}>
+                        <span
+                          className={product.stock <= 5 ? "text-amber-500" : ""}
+                        >
                           {product.stock} un.
                         </span>
                       </p>
@@ -459,7 +470,11 @@ export function CommandDetailsPage() {
                       }`}
                     >
                       <FaPlus className="text-[9px]" />
-                      {outOfStock ? "Sem estoque" : inCommand ? "Por mais" : "Adicionar"}
+                      {outOfStock
+                        ? "Sem estoque"
+                        : inCommand
+                          ? "Por mais"
+                          : "Adicionar"}
                     </button>
                   </div>
                 );
@@ -480,7 +495,9 @@ export function CommandDetailsPage() {
           <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
             <FaShoppingCart className="text-base" />
           </div>
-          <p className="text-sm font-medium text-slate-400">Nenhum item lançado ainda</p>
+          <p className="text-sm font-medium text-slate-400">
+            Nenhum item lançado ainda
+          </p>
         </div>
       ) : (
         <div className="flex flex-col h-full">
@@ -489,11 +506,13 @@ export function CommandDetailsPage() {
               <ItemRow key={item.id} item={item} />
             ))}
           </div>
-          
+
           <div className="pt-4 mt-4 border-t border-slate-200 bg-slate-50/50 -mx-6 -mb-6 p-6 rounded-b-2xl flex justify-between items-center">
             <div className="flex items-center gap-2 text-slate-500">
               <FaReceipt className="text-xs" />
-              <span className="text-xs font-bold uppercase tracking-wider">Subtotal</span>
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Subtotal
+              </span>
             </div>
             <span className="text-2xl font-black text-slate-900 tabular-nums">
               {formatCurrency(command.total)}
@@ -522,14 +541,13 @@ export function CommandDetailsPage() {
 
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-          
           {/* Botão de Voltar */}
-            <button
-              onClick={() => navigate("/commands")}
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-600 mb-6 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm transition-all"
-            >
-              <FaArrowLeft className="text-[10px]" /> Voltar para Comandas
-            </button>
+          <button
+            onClick={() => navigate("/commands")}
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-600 mb-6 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm transition-all"
+          >
+            <FaArrowLeft className="text-[10px]" /> Voltar para Comandas
+          </button>
 
           {/* Card Principal da Comanda */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
@@ -539,31 +557,54 @@ export function CommandDetailsPage() {
                   <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">
                     Mesa / Cliente
                   </span>
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    command.closed ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${command.closed ? "bg-slate-400" : "bg-emerald-500 animate-pulse"}`} />
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      command.closed
+                        ? "bg-slate-100 text-slate-500"
+                        : "bg-emerald-50 text-emerald-700"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${command.closed ? "bg-slate-400" : "bg-emerald-500 animate-pulse"}`}
+                    />
                     {command.closed ? "Fechada" : "Ativa"}
                   </span>
                 </div>
-                
+
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
                   {command.customer}
                 </h1>
-                
+
                 <div className="text-xs font-medium text-slate-400 mt-2 space-y-0.5">
-                  <p>🔹 ID da Comanda: <span className="font-semibold text-slate-600">#{command.id}</span></p>
+                  <p>
+                    🔹 ID da Comanda:{" "}
+                    <span className="font-semibold text-slate-600">
+                      #{command.id}
+                    </span>
+                  </p>
                   {command.openedBy && (
-                    <p>📩 Abertura: por <span className="font-semibold text-slate-500">{command.openedBy.name}</span></p>
+                    <p>
+                      📩 Abertura: por{" "}
+                      <span className="font-semibold text-slate-500">
+                        {command.openedBy.name}
+                      </span>
+                    </p>
                   )}
                   {command.closed && command.closedBy && (
-                    <p>🔒 Fechamento: por <span className="font-semibold text-slate-500">{command.closedBy.name}</span></p>
+                    <p>
+                      🔒 Fechamento: por{" "}
+                      <span className="font-semibold text-slate-500">
+                        {command.closedBy.name}
+                      </span>
+                    </p>
                   )}
                 </div>
               </div>
 
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-center items-start md:items-end min-w-[160px]">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Acumulado</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Total Acumulado
+                </span>
                 <span className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums mt-0.5">
                   {formatCurrency(command.total)}
                 </span>
@@ -610,10 +651,15 @@ export function CommandDetailsPage() {
           </div>
 
           {/* LAYOUT DESKTOP */}
-          <div className={`hidden lg:grid gap-6 ${canManageItems ? "lg:grid-cols-3" : "lg:grid-cols-1 max-w-xl mx-auto"}`}>
-            
+          <div
+            className={`hidden lg:grid gap-6 ${canManageItems ? "lg:grid-cols-3" : "lg:grid-cols-1 max-w-xl mx-auto"}`}
+          >
             {/* Coluna da Esquerda: Itens + QR Code */}
-            <div className={canManageItems ? "lg:col-span-1 space-y-6" : "space-y-6"}>
+            <div
+              className={
+                canManageItems ? "lg:col-span-1 space-y-6" : "space-y-6"
+              }
+            >
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between">
                 <div>
                   <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
@@ -635,7 +681,6 @@ export function CommandDetailsPage() {
                 {CatalogContent}
               </div>
             )}
-
           </div>
         </div>
       </div>

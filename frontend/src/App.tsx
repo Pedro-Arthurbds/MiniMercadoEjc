@@ -7,6 +7,7 @@ import { ProductsPage } from "./pages/ProductsPage";
 import { CommandsPage } from "./pages/CommandsPage";
 import { CommandDetailsPage } from "./pages/CommandDetailsPage";
 import { UsersPage } from "./pages/UsersPage";
+import { PublicCommandPage } from "./pages/PublicCommandPage";
 
 export function App() {
   return (
@@ -14,7 +15,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-
+          <Route path="/c/:code" element={<PublicCommandPage />} />
           <Route
             path="/"
             element={
