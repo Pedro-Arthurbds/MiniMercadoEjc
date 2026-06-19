@@ -15,6 +15,8 @@ import {
   FaPrint,
   FaQrcode,
   FaReceipt,
+  FaCheckCircle,
+  FaClock,
 } from "react-icons/fa";
 import QRCode from "qrcode";
 
@@ -30,6 +32,7 @@ type Product = {
 type CommandItem = {
   id: number;
   quantity: number;
+  paid: boolean;
   product: Product;
   addedBy?: { id: number; name: string } | null;
 };
@@ -53,14 +56,39 @@ function formatCurrency(value: number) {
 
 // ─── Item Row ─────────────────────────────────────────────────────────────────
 
-function ItemRow({ item }: { item: CommandItem }) {
+function ItemRow({
+  item,
+  canManage,
+  onTogglePaid,
+}: {
+  item: CommandItem;
+  canManage: boolean;
+  onTogglePaid: (item: CommandItem) => void;
+}) {
   const subtotal = item.product.price * item.quantity;
   return (
-    <div className="flex items-center justify-between py-3.5 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 px-2 -mx-2 rounded-lg transition-colors">
+    <div
+      className={`flex items-center justify-between py-3.5 border-b border-slate-100 last:border-0 px-2 -mx-2 rounded-lg transition-colors ${
+        item.paid ? "opacity-60" : "hover:bg-slate-50/50"
+      }`}
+    >
       <div className="flex-1 min-w-0 pr-3">
-        <p className="text-sm font-bold text-slate-800 truncate">
-          {item.product.name}
-        </p>
+        <div className="flex items-center gap-2">
+          <p
+            className={`text-sm font-bold text-slate-800 truncate ${item.paid ? "line-through text-slate-400" : ""}`}
+          >
+            {item.product.name}
+          </p>
+          {item.paid ? (
+            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 whitespace-nowrap">
+              <FaCheckCircle className="text-[8px]" /> Pago
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-100 whitespace-nowrap">
+              <FaClock className="text-[8px]" /> Em aberto
+            </span>
+          )}
+        </div>
         <p className="text-xs font-medium text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
           <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
             {item.quantity}x
@@ -77,9 +105,25 @@ function ItemRow({ item }: { item: CommandItem }) {
           )}
         </p>
       </div>
-      <span className="text-sm font-extrabold text-slate-700 flex-shrink-0 tabular-nums">
-        {formatCurrency(subtotal)}
-      </span>
+
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="text-sm font-extrabold text-slate-700 tabular-nums">
+          {formatCurrency(subtotal)}
+        </span>
+
+        {canManage && (
+          <button
+            onClick={() => onTogglePaid(item)}
+            className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 border ${
+              item.paid
+                ? "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                : "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+            }`}
+          >
+            {item.paid ? "Desfazer" : "Pago ✓"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -223,7 +267,7 @@ function AddItemModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-xl p-6 pb-8 sm:pb-6 border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-200">
+      <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-xl p-6 pb-8 sm:pb-6 border border-slate-100">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-5 sm:hidden" />
 
         <div className="flex items-start justify-between mb-5">
@@ -275,7 +319,7 @@ function AddItemModal({
           <button
             onClick={() => onConfirm(quantity)}
             disabled={adding}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-sm shadow-indigo-100"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold disabled:opacity-50 transition flex items-center justify-center gap-2"
           >
             {adding ? (
               <>
@@ -359,6 +403,17 @@ export function CommandDetailsPage() {
     }
   }
 
+  async function handleTogglePaid(item: CommandItem) {
+    try {
+      await api.patch(`/command-items/${item.id}/paid`, {
+        paid: !item.paid,
+      });
+      await loadCommand();
+    } catch {
+      // erro silencioso — a lista vai recarregar no próximo loadCommand
+    }
+  }
+
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
@@ -380,6 +435,14 @@ export function CommandDetailsPage() {
     );
   }
 
+  // Totais separados
+  const totalPaid = command.items
+    .filter((i) => i.paid)
+    .reduce((acc, i) => acc + i.product.price * i.quantity, 0);
+  const totalPending = command.items
+    .filter((i) => !i.paid)
+    .reduce((acc, i) => acc + i.product.price * i.quantity, 0);
+
   const mobileTabs = [
     { key: "items" as const, label: `Itens (${command.items.length})` },
     ...(canManageItems
@@ -387,7 +450,69 @@ export function CommandDetailsPage() {
       : []),
   ];
 
-  // ── Shared: product catalog panel content ─────────────────────────────────
+  // ── Items panel ────────────────────────────────────────────────────────────
+
+  const ItemsContent = (
+    <>
+      {command.items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-slate-300 gap-2">
+          <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+            <FaShoppingCart className="text-base" />
+          </div>
+          <p className="text-sm font-medium text-slate-400">
+            Nenhum item lançado ainda
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col h-full">
+          <div className="divide-y divide-slate-100 flex-1">
+            {command.items.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                canManage={canManageItems}
+                onTogglePaid={handleTogglePaid}
+              />
+            ))}
+          </div>
+
+          {/* Totais */}
+          <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+            {totalPaid > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                  <FaCheckCircle className="text-xs" /> Pago
+                </span>
+                <span className="font-bold text-emerald-600 tabular-nums">
+                  {formatCurrency(totalPaid)}
+                </span>
+              </div>
+            )}
+            {totalPending > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="flex items-center gap-1.5 text-amber-600 font-semibold">
+                  <FaClock className="text-xs" /> Em aberto
+                </span>
+                <span className="font-bold text-amber-600 tabular-nums">
+                  {formatCurrency(totalPending)}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+              <span className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                <FaReceipt className="text-xs" /> Total
+              </span>
+              <span className="text-2xl font-black text-slate-900 tabular-nums">
+                {formatCurrency(command.total)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  // ── Catalog panel ──────────────────────────────────────────────────────────
 
   const CatalogContent = (
     <>
@@ -486,43 +611,6 @@ export function CommandDetailsPage() {
     </>
   );
 
-  // ── Shared: items panel content ────────────────────────────────────────────
-
-  const ItemsContent = (
-    <>
-      {command.items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-slate-300 gap-2">
-          <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-            <FaShoppingCart className="text-base" />
-          </div>
-          <p className="text-sm font-medium text-slate-400">
-            Nenhum item lançado ainda
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col h-full">
-          <div className="divide-y divide-slate-100 flex-1">
-            {command.items.map((item) => (
-              <ItemRow key={item.id} item={item} />
-            ))}
-          </div>
-
-          <div className="pt-4 mt-4 border-t border-slate-200 bg-slate-50/50 -mx-6 -mb-6 p-6 rounded-b-2xl flex justify-between items-center">
-            <div className="flex items-center gap-2 text-slate-500">
-              <FaReceipt className="text-xs" />
-              <span className="text-xs font-bold uppercase tracking-wider">
-                Subtotal
-              </span>
-            </div>
-            <span className="text-2xl font-black text-slate-900 tabular-nums">
-              {formatCurrency(command.total)}
-            </span>
-          </div>
-        </div>
-      )}
-    </>
-  );
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -541,7 +629,6 @@ export function CommandDetailsPage() {
 
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-          {/* Botão de Voltar */}
           <button
             onClick={() => navigate("/commands")}
             className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-600 mb-6 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm transition-all"
@@ -549,7 +636,7 @@ export function CommandDetailsPage() {
             <FaArrowLeft className="text-[10px]" /> Voltar para Comandas
           </button>
 
-          {/* Card Principal da Comanda */}
+          {/* Card Principal */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -577,7 +664,7 @@ export function CommandDetailsPage() {
 
                 <div className="text-xs font-medium text-slate-400 mt-2 space-y-0.5">
                   <p>
-                    🔹 ID da Comanda:{" "}
+                    🔹 ID:{" "}
                     <span className="font-semibold text-slate-600">
                       #{command.id}
                     </span>
@@ -601,18 +688,40 @@ export function CommandDetailsPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-center items-start md:items-end min-w-[160px]">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Total Acumulado
-                </span>
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums mt-0.5">
-                  {formatCurrency(command.total)}
-                </span>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-center items-start md:items-end min-w-[180px] gap-1">
+                {totalPaid > 0 && (
+                  <div className="flex items-center gap-2 w-full md:justify-end">
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                      Pago
+                    </span>
+                    <span className="text-sm font-bold text-emerald-600 tabular-nums">
+                      {formatCurrency(totalPaid)}
+                    </span>
+                  </div>
+                )}
+                {totalPending > 0 && (
+                  <div className="flex items-center gap-2 w-full md:justify-end">
+                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                      Em aberto
+                    </span>
+                    <span className="text-sm font-bold text-amber-600 tabular-nums">
+                      {formatCurrency(totalPending)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 w-full md:justify-end pt-1 border-t border-slate-200 mt-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Total
+                  </span>
+                  <span className="text-2xl font-black text-slate-900 tabular-nums">
+                    {formatCurrency(command.total)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* NAVEGAÇÃO MOBILE TABS */}
+          {/* Mobile Tabs */}
           <div className="flex lg:hidden bg-white p-1 rounded-xl border border-slate-100 shadow-sm mb-5 gap-1">
             {mobileTabs.map((tab) => (
               <button
@@ -629,7 +738,7 @@ export function CommandDetailsPage() {
             ))}
           </div>
 
-          {/* LAYOUT MOBILE */}
+          {/* Mobile Layout */}
           <div className="lg:hidden space-y-5">
             {mobileTab === "items" ? (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
@@ -646,33 +755,27 @@ export function CommandDetailsPage() {
                 {CatalogContent}
               </div>
             )}
-
             <QRPanel command={command} />
           </div>
 
-          {/* LAYOUT DESKTOP */}
+          {/* Desktop Layout */}
           <div
             className={`hidden lg:grid gap-6 ${canManageItems ? "lg:grid-cols-3" : "lg:grid-cols-1 max-w-xl mx-auto"}`}
           >
-            {/* Coluna da Esquerda: Itens + QR Code */}
             <div
               className={
                 canManageItems ? "lg:col-span-1 space-y-6" : "space-y-6"
               }
             >
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between">
-                <div>
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
-                    Itens Consumidos
-                  </h2>
-                  {ItemsContent}
-                </div>
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
+                  Itens Consumidos
+                </h2>
+                {ItemsContent}
               </div>
-
               <QRPanel command={command} />
             </div>
 
-            {/* Coluna da Direita: Catálogo para Adicionar */}
             {canManageItems && (
               <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col h-fit">
                 <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">

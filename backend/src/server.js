@@ -472,3 +472,26 @@ app.delete(
     }
   },
 );
+
+// Marcar item como pago/não pago
+app.patch(
+  "/command-items/:id/paid",
+  authenticate,
+  authorize("MINIMERCADO"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { paid } = req.body;
+
+      const item = await prisma.commandItem.update({
+        where: { id: Number(id) },
+        data: { paid },
+      });
+
+      res.json(item);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: "Erro ao atualizar pagamento do item" });
+    }
+  },
+);
