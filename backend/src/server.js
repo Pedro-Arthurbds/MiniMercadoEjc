@@ -483,15 +483,23 @@ app.patch(
       const { id } = req.params;
       const { paid } = req.body;
 
-      const item = await prisma.commandItem.update({
+      const itemExists = await prisma.commandItem.findUnique({
         where: { id: Number(id) },
-        data: { paid },
       });
 
-      res.json(item);
+      if (!itemExists) {
+        return res.status(404).json({ error: "Item não encontrado" });
+      }
+
+      const item = await prisma.commandItem.update({
+        where: { id: Number(id) },
+        data: { paid: !!paid },
+      });
+
+      return res.json(item);
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ error: "Erro ao atualizar pagamento do item" });
+      console.error(error);
+      return res.status(500).json({ error: "Erro ao atualizar pagamento" });
     }
   },
 );
