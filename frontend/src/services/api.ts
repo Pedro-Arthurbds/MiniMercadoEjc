@@ -18,7 +18,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      // notify the app to perform a proper logout/navigation
+      try {
+        window.dispatchEvent(new Event("app:logout"));
+      } catch (e) {
+        // fallback to direct navigation if dispatch fails
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

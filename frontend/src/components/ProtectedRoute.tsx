@@ -10,7 +10,8 @@ export function ProtectedRoute({
   children: React.ReactNode;
   allowedRoles?: Role[];
 }) {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, isInitializing } = useAuth();
+  if (isInitializing) return null;
 
   if (!user) {
     return <Navigate to="/login" replace />;

@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { api } from "../services/api";
 
@@ -14,6 +15,7 @@ export type User = {
 type AuthContextType = {
   user: User | null;
   token: string | null;
+  isInitializing: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -37,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() =>
     localStorage.getItem("token"),
   );
+  const [isInitializing, setIsInitializing] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (token) {
@@ -45,6 +49,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       delete api.defaults.headers.common["Authorization"];
     }
   }, [token]);
+
+  // initialize: validate token and fetch user info if needed
+  useEffect(() => {
+    let mounted = true;
+    async function init() {
+      if (!token) {
+        setIsInitializing(false);
+        return;
+      }
+      try {
+        const resp = await api.get("/auth/me");
+        if (!mounted) return;
+        setUser(resp.data.user);
+      } catch (e) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setToken(null);
+        setUser(null);
+      } finally {
+        if (mounted) setIsInitializing(false);
+      }
+    }
+    init();
+    // listen for global logout events
+    const handler = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setToken(null);
+      setUser(null);
+      navigate("/login");
+    };
+    window.addEventListener("app:logout", handler);
+    return () => {
+      mounted = false;
+      window.removeEventListener("app:logout", handler);
+    };
+  }, []); // run once on mount
 
   async function login(email: string, password: string): Promise<User> {
     const response = await api.post("/auth/login", { email, password });
@@ -62,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
+    navigate("/login");
   }
 
   const role = user?.role;
@@ -85,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         token,
+        isInitializing,
         login,
         logout,
         isAuthenticated: !!user,

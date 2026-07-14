@@ -11,8 +11,8 @@ import { PublicCommandPage } from "./pages/PublicCommandPage";
 
 export function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/c/:code" element={<PublicCommandPage />} />
@@ -57,7 +57,7 @@ export function App() {
             }
           />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

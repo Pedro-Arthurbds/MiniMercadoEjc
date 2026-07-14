@@ -6,6 +6,7 @@
 //    - Prisma   → ORM (ferramenta que faz o "meio campo" entre o
 //                 código e o banco de dados)
 //    - JWT/bcrypt → autenticação e proteção de senhas
+//    - Zod      → validação de entrada das rotas
 // ============================================================
 
 require("dotenv").config();
@@ -13,18 +14,46 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { PrismaClient } = require("@prisma/client");
-const { authenticate, authorize } = require("./middleware/auth");
+const { authenticate, authorize } = require("./middlewares/auth");
 const {
   hashPassword,
   comparePassword,
   generateToken,
 } = require("./utils/auth");
+const { validate } = require("./middlewares/validate");
+const {
+  loginSchema,
+  createUserSchema,
+  updateUserSchema,
+  createProductSchema,
+  updateProductSchema,
+  createSaleSchema,
+  createCommandSchema,
+  createCommandItemSchema,
+  updatePaidSchema,
+} = require("./schemas/schemas");
 
 const prisma = new PrismaClient();
 const app = express();
 
 // ── Middlewares ──────────────────────────────────────────────
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://mini-mercado-ejc.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // ── Rota raiz (teste rápido) ─────────────────────────────────
@@ -36,7 +65,7 @@ app.get("/", (req, res) => {
 //  ROTAS DE AUTENTICAÇÃO  (/auth)
 // ============================================================
 
-app.post("/auth/login", async (req, res) => {
+app.post("/auth/login", validate(loginSchema), async (req, res) => {
   const { email, password } = req.body;
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -56,20 +85,32 @@ app.post("/auth/login", async (req, res) => {
   });
 });
 
+// rota para validar token e obter usuário atual
+app.get("/auth/me", authenticate, async (req, res) => {
+  const user = req.user; // preenchido pelo middleware authenticate
+  res.json({ user: { id: user.id, name: user.name, role: user.role } });
+});
+
 // ============================================================
 //  ROTAS DE USUÁRIOS  (/users) — apenas ADMIN
 // ============================================================
 
-app.post("/users", authenticate, authorize(), async (req, res) => {
-  const { name, email, password, role } = req.body;
-  const hashed = await hashPassword(password);
+app.post(
+  "/users",
+  authenticate,
+  authorize(),
+  validate(createUserSchema),
+  async (req, res) => {
+    const { name, email, password, role } = req.body;
+    const hashed = await hashPassword(password);
 
-  const user = await prisma.user.create({
-    data: { name, email, password: hashed, role },
-  });
+    const user = await prisma.user.create({
+      data: { name, email, password: hashed, role },
+    });
 
-  res.status(201).json({ id: user.id, name: user.name, role: user.role });
-});
+    res.status(201).json({ id: user.id, name: user.name, role: user.role });
+  },
+);
 
 app.get("/users", authenticate, authorize(), async (req, res) => {
   const users = await prisma.user.findMany({
@@ -78,38 +119,38 @@ app.get("/users", authenticate, authorize(), async (req, res) => {
   res.json(users);
 });
 
-// Inicia o servidor
-const PORT = process.env.PORT || 3333;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+app.put(
+  "/users/:id",
+  authenticate,
+  authorize(),
+  validate(updateUserSchema),
+  async (req, res) => {
+    const { id } = req.params;
+    const { name, email, password, role } = req.body;
 
-app.put("/users/:id", authenticate, authorize(), async (req, res) => {
-  const { id } = req.params;
-  const { name, email, password, role } = req.body;
+    try {
+      const data = { name, email, role };
+      if (password) {
+        data.password = await hashPassword(password);
+      }
 
-  try {
-    const data = { name, email, role };
-    if (password) {
-      data.password = await hashPassword(password);
+      const user = await prisma.user.update({
+        where: { id: Number(id) },
+        data,
+      });
+
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: "Erro ao atualizar usuário" });
     }
-
-    const user = await prisma.user.update({
-      where: { id: Number(id) },
-      data,
-    });
-
-    res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: "Erro ao atualizar usuário" });
-  }
-});
+  },
+);
 
 app.delete("/users/:id", authenticate, authorize(), async (req, res) => {
   const { id } = req.params;
@@ -139,6 +180,7 @@ app.post(
   "/products",
   authenticate,
   authorize("MINIMERCADO"),
+  validate(createProductSchema),
   async (req, res) => {
     const { name, category, price, stock } = req.body;
 
@@ -174,6 +216,7 @@ app.put(
   "/products/:id",
   authenticate,
   authorize("MINIMERCADO"),
+  validate(updateProductSchema),
   async (req, res) => {
     const { id } = req.params;
     const { name, category, price, stock } = req.body;
@@ -195,9 +238,8 @@ app.post(
   "/sales",
   authenticate,
   authorize("MINIMERCADO"),
+  validate(createSaleSchema),
   async (request, response) => {
-    console.log(request.body);
-
     const { productId, quantity } = request.body;
 
     const product = await prisma.product.findUnique({
@@ -248,6 +290,7 @@ app.post(
   "/commands",
   authenticate,
   authorize("MINIMERCADO", "SECRETARIA"),
+  validate(createCommandSchema),
   async (request, response) => {
     try {
       const { customer } = request.body;
@@ -291,12 +334,13 @@ app.post(
   "/command-items",
   authenticate,
   authorize("MINIMERCADO"),
+  validate(createCommandItemSchema),
   async (request, response) => {
     try {
       const { commandId, productId, quantity } = request.body;
 
       const command = await prisma.command.findUnique({
-        where: { id: Number(commandId) },
+        where: { id: commandId },
       });
 
       if (!command) {
@@ -307,11 +351,8 @@ app.post(
         return response.status(400).json({ error: "comanda ja fechada" });
       }
 
-      const productIdNumber = Number(productId);
-      const commandIdNumber = Number(commandId);
-
       const product = await prisma.product.findUnique({
-        where: { id: productIdNumber },
+        where: { id: productId },
       });
 
       if (!product) {
@@ -326,20 +367,20 @@ app.post(
 
       const item = await prisma.commandItem.create({
         data: {
-          commandId: commandIdNumber,
-          productId: productIdNumber,
+          commandId,
+          productId,
           quantity,
           addedByUserId: request.user.id,
         },
       });
 
       await prisma.product.update({
-        where: { id: productIdNumber },
+        where: { id: productId },
         data: { stock: product.stock - quantity },
       });
 
       await prisma.command.update({
-        where: { id: commandIdNumber },
+        where: { id: commandId },
         data: { total: { increment: subtotal } },
       });
 
@@ -426,7 +467,11 @@ app.put(
 
     const command = await prisma.command.update({
       where: { id: Number(id) },
-      data: { closed: true, closedAt: new Date(), closedByUserId: req.user.id },
+      data: {
+        closed: true,
+        closedAt: new Date(),
+        closedByUserId: req.user.id,
+      },
     });
     res.json(command);
   },
@@ -478,6 +523,7 @@ app.patch(
   "/command-items/:id/paid",
   authenticate,
   authorize("MINIMERCADO"),
+  validate(updatePaidSchema),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -503,3 +549,9 @@ app.patch(
     }
   },
 );
+
+// Inicia o servidor
+const PORT = process.env.PORT || 3333;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});

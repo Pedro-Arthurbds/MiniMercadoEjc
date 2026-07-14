@@ -255,5 +255,3 @@ Desenvolvido por [Pedro Arthur](https://github.com/Pedro-Arthurbds)
 Tem dúvidas ou encontrou um bug? Abra uma [issue](https://github.com/Pedro-Arthurbds/MiniMercadoEjc/issues).
 
 ---
-
-**Feito com ❤️ por [Pedro Arthur](https://github.com/Pedro-Arthurbds)**
