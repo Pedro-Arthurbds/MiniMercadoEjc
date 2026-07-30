@@ -1,31 +1,31 @@
 import axios from 'axios'
 
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL,
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token')
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`
   }
-  return config;
-});
+  return config
+})
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      // notify the app to perform a proper logout/navigation
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       try {
-        window.dispatchEvent(new Event("app:logout"));
+        window.dispatchEvent(new Event('app:logout'))
       } catch (e) {
-        // fallback to direct navigation if dispatch fails
-        window.location.href = "/login";
+        window.location.href = '/login'
       }
     }
-    return Promise.reject(error);
-  }
-);
+    return Promise.reject(error)
+  },
+)

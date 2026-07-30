@@ -1,7 +1,7 @@
 site_name: Mini Mercado EJC
 site_description: Documentação técnica do projeto Mini Mercado EJC
 site_author: Pedro Arthur
-repo_url: https://github.com/seu-usuario/MiniMercadoEjc
+repo_url: https://github.com/Pedro-Arthur/MiniMercadoEjc
 nav:
   - Home: index.md
   - Backend: backend.md
@@ -22,4 +22,4 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/seu-usuario/MiniMercadoEjc
+      link: https://github.com/Pedro-Arthur/MiniMercadoEjc
