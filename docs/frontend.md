@@ -1,92 +1,94 @@
 # Frontend — Mini Mercado EJC
 
-## Visão geral
+O frontend é a camada visual do sistema. Ele oferece uma interface para que os usuários consigam operar o mini mercado com segurança, navegação simples e feedback visual.
 
-O frontend é a aplicação React + TypeScript que fornece a interface do usuário para gerenciamento de produtos, comandas e usuários.
+## Estrutura da aplicação
 
-### Páginas principais
+A organização principal está em frontend/src:
 
-- `/login` — página de login
-- `/` — dashboard
-- `/products` — gerenciamento de produtos
-- `/commands` — listagem de comandas
-- `/commands/:id` — detalhes da comanda
-- `/users` — administração de usuários
-- `/c/:code` — visualização pública de comanda
+- `components/`: componentes reutilizáveis como cards, formulários e navegação
+- `contexts/`: contexto global de autenticação
+- `pages/`: páginas principais da aplicação
+- `services/`: configuração do cliente HTTP com Axios
+- `App.tsx`: definição das rotas e proteção de acesso
 
-## Arquitetura
+## Principais rotas
 
-- `src/App.tsx` — define rotas e rotas protegidas
-- `src/contexts/AuthContext.tsx` — gerencia autenticação e permissões
-- `src/services/api.ts` — configura Axios e token JWT
-- `src/components/ProtectedRoute.tsx` — protege rotas privadas
-- `src/pages/` — páginas da aplicação
-- `src/components/` — componentes reutilizáveis
+- `/login`: tela de acesso
+- `/`: dashboard principal
+- `/products`: gestão de produtos
+- `/commands`: listagem e criação de comandas
+- `/commands/:id`: detalhes de uma comanda
+- `/users`: gestão de usuários
+- `/c/:code`: visualização pública de uma comanda
 
-## Autenticação
+## Autenticação no frontend
 
-- O usuário realiza login em `/login`.
-- O token JWT é salvo em `localStorage`.
-- O `api.ts` envia o token em `Authorization` para todas as requisições.
-- `AuthContext` valida o token em `/auth/me`.
-- `ProtectedRoute` bloqueia acesso não autorizado.
+A autenticação é feita com JWT e contexto React.
 
-## Permissões
+- o usuário faz login na tela `/login`;
+- o token é salvo no `localStorage`;
+- o cliente Axios adiciona o token automaticamente ao header `Authorization`;
+- o contexto valida o token com a rota `/auth/me`.
 
-- `ADMIN` — acesso total, incluindo gerenciamento de usuários.
-- `MINIMERCADO` — gerenciamento de produtos, vendas e comandas.
-- `SECRETARIA` — criação de comandas.
+## Fluxo de permissões
 
-## Componentes importantes
+O frontend também usa o contexto de autenticação para controlar o que cada perfil pode ver ou executar.
 
-### `ProductsPage`
+- ADMIN: tem acesso à gestão de usuários e à visão geral do sistema
+- MINIMERCADO: controla estoque, vendas e comandas
+- SECRETARIA: pode criar e acompanhar comandas
 
-- Obtém produtos via `GET /products`
-- Filtra produtos por nome e categoria
-- Exibe indicadores de estoque
-- Permite criar produto para papel `MINIMERCADO`
+## Páginas principais
 
-### `CommandsPage`
+### LoginPage
 
-- Obtém comandas via `GET /commands`
-- Filtra comandas abertas, fechadas e por nome do cliente
-- Permite abrir nova comanda via modal
+Tela inicial para autenticação do usuário.
 
-### `CommandDetailsPage`
+### DashboardPage
 
-- Obtém comanda via `GET /commands/:id`
-- Adiciona item via `POST /command-items`
-- Fecha comanda via `PUT /commands/:id/close`
-- Gera QR Code para acesso público
+Página central com visão geral do sistema e indicadores principais.
 
-### `UsersPage`
+### ProductsPage
 
-- Lista usuários via `GET /users`
-- Cria e edita usuários via `/users`
-- Remove usuários
-- Disponível apenas para papel `ADMIN`
+Permite listar e gerenciar produtos e estoque.
 
-## Configuração de ambiente
+### CommandsPage
 
-Crie `frontend/.env` com:
+Exibe as comandas, permitindo criar novas e acompanhar o estado aberto/fechado.
 
-```env
-VITE_API_URL=http://localhost:3000
-```
+### CommandDetailsPage
 
-## Dependências principais
+Mostra os itens de uma comanda, permite adicionar produtos e fechar a operação.
 
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Axios
-- React Router DOM
-- React Icons
-- qrcode
-- react-hot-toast
+### UsersPage
 
-## Como executar
+Disponível para administradores, para gerenciar usuários do sistema.
+
+### PublicCommandPage
+
+Tela pública que exibe uma comanda a partir de um código compartilhado.
+
+## Cliente HTTP
+
+O arquivo frontend/src/services/api.ts centraliza a configuração do Axios, incluindo:
+
+- `baseURL` vindo de `VITE_API_URL`;
+- envio automático do token JWT;
+- tratamento de respostas 401 para encerrar a sessão.
+
+## Tecnologias do frontend
+
+- React 19 para construção da interface
+- TypeScript para maior segurança no código
+- Vite para desenvolvimento rápido e build otimizado
+- React Router DOM para navegação
+- Tailwind CSS para estilização
+- Axios para comunicação com a API
+- React Hot Toast para mensagens visuais
+- QRCode para gerar links de compartilhamento de comandas
+
+## Como executar localmente
 
 ```bash
 cd frontend
@@ -94,4 +96,4 @@ npm install
 npm run dev
 ```
 
-A aplicação ficará disponível em `http://localhost:5173`.
+A aplicação fica disponível em `http://localhost:5173`.

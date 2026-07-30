@@ -1,103 +1,201 @@
 # API — Mini Mercado EJC
 
-## Endpoints
+A API do Mini Mercado EJC é o núcleo do sistema. Ela recebe as requisições do frontend, valida os dados e executa as operações sobre o banco de dados.
 
-### Autenticação
+## Visão geral
 
-- `POST /auth/login`
-  - corpo: `{ email, password }`
-  - retorna: `{ token, user: { id, name, role } }`
+A API é RESTful e usa JSON para comunicação. As rotas são protegidas por autenticação e, em muitos casos, por autorização baseada em perfil.
 
-- `GET /auth/me`
-  - cabeçalho: `Authorization: Bearer <token>`
-  - retorna: `{ user: { id, name, role } }`
+## Autenticação
 
-### Usuários
+Todas as rotas protegidas exigem um header no formato:
 
-- `POST /users`
-  - cabeçalho: `Authorization: Bearer <token>`
-  - corpo: `{ name, email, password, role }`
-  - papel: `ADMIN`
+```http
+Authorization: Bearer <token>
+```
 
-- `GET /users`
-  - papel: `ADMIN`
-  - retorna lista de usuários
+### POST /auth/login
 
-- `PUT /users/:id`
-  - papel: `ADMIN`
-  - corpo: `{ name, email, password?, role }`
+Realiza o login do usuário.
 
-- `DELETE /users/:id`
-  - papel: `ADMIN`
+Body:
 
-### Produtos
+```json
+{
+  "email": "admin@example.com",
+  "password": "senha123"
+}
+```
 
-- `GET /products`
-  - retorna lista de produtos
+Resposta:
 
-- `POST /products`
-  - papel: `MINIMERCADO`
-  - corpo: `{ name, category, price, stock }`
+```json
+{
+  "token": "jwt-token",
+  "user": {
+    "id": 1,
+    "name": "Admin",
+    "role": "ADMIN"
+  }
+}
+```
 
-- `PUT /products/:id`
-  - papel: `MINIMERCADO`
-  - corpo: `{ name, category, price, stock }`
+### GET /auth/me
 
-- `DELETE /products/:id`
-  - papel: `MINIMERCADO`
+Retorna o usuário autenticado com base no token enviado.
 
-### Vendas
+## Usuários
 
-- `GET /sales`
-  - papel: `ADMIN` ou `MINIMERCADO`
+### POST /users
 
-- `POST /sales`
-  - papel: `MINIMERCADO`
-  - corpo: `{ productId, quantity }`
-  - efeito: desconta `quantity` do estoque do produto
+Cria um novo usuário. Requer perfil `ADMIN`.
 
-### Comandas
+Body:
 
-- `GET /commands`
-  - retorna comandas com itens e dados de usuários
+```json
+{
+  "name": "Maria",
+  "email": "maria@example.com",
+  "password": "senha123",
+  "role": "SECRETARIA"
+}
+```
 
-- `POST /commands`
-  - papel: `MINIMERCADO` ou `SECRETARIA`
-  - corpo: `{ customer }`
+### GET /users
 
-- `GET /commands/:id`
-  - retorna comanda com itens, usuário que abriu e usuário que fechou
+Lista os usuários cadastrados.
 
-- `PUT /commands/:id/close`
-  - papel: `MINIMERCADO`
-  - efeito: marca comanda como fechada e registra `closedAt`
+### PUT /users/:id
 
-- `GET /c/:code`
-  - rota pública
-  - retorna dados reduzidos da comanda para compartilhamento
+Atualiza um usuário existente.
 
-### Itens de comanda
+### DELETE /users/:id
 
-- `POST /command-items`
-  - papel: `MINIMERCADO`
-  - corpo: `{ commandId, productId, quantity }`
-  - efeito: adiciona item, desconta estoque e atualiza `total` da comanda
+Remove um usuário, desde que não seja o próprio usuário logado.
 
-- `DELETE /command-items/:id`
-  - papel: `MINIMERCADO`
-  - efeito: remove item, repõe estoque e ajusta `total`
+## Produtos
 
-## Erros comuns de validação
+### GET /products
 
-- `401 Unauthorized` — token ausente ou inválido
-- `403 Forbidden` — papel sem permissão
-- `400 Bad Request` — dados inválidos ou estoque insuficiente
-- `404 Not Found` — produto, comanda ou item não encontrados
+Lista os produtos cadastrados.
 
-## Exemplo de uso
+### POST /products
+
+Cria um novo produto. Requer perfil `MINIMERCADO`.
+
+Body:
+
+```json
+{
+  "name": "Coca-Cola 2L",
+  "category": "Bebidas",
+  "price": 8.5,
+  "stock": 20
+}
+```
+
+### PUT /products/:id
+
+Atualiza um produto existente.
+
+### DELETE /products/:id
+
+Exclui um produto do sistema.
+
+## Vendas
+
+### POST /sales
+
+Registra uma venda. Requer perfil `MINIMERCADO`.
+
+Body:
+
+```json
+{
+  "productId": 1,
+  "quantity": 3
+}
+```
+
+Essa operação:
+
+- valida se há estoque suficiente;
+- cria o registro de venda;
+- decrementa o estoque do produto.
+
+### GET /sales
+
+Lista as vendas registradas.
+
+## Comandas
+
+### POST /commands
+
+Cria uma nova comanda. Requer perfil `MINIMERCADO` ou `SECRETARIA`.
+
+Body:
+
+```json
+{
+  "customer": "João"
+}
+```
+
+### GET /commands
+
+Lista as comandas com seus itens e dados de quem abriu/fechou.
+
+### GET /commands/:id
+
+Retorna os detalhes de uma comanda específica.
+
+### PUT /commands/:id/close
+
+Fecha uma comanda. Requer perfil `MINIMERCADO`.
+
+### GET /c/:code
+
+Rota pública para visualizar uma comanda através de um código compartilhável.
+
+## Itens de comanda
+
+### POST /command-items
+
+Adiciona um produto a uma comanda. Requer perfil `MINIMERCADO`.
+
+Body:
+
+```json
+{
+  "commandId": 1,
+  "productId": 2,
+  "quantity": 2
+}
+```
+
+Essa operação atualiza:
+
+- o estoque do produto;
+- o total da comanda;
+- o histórico do item adicionado.
+
+### DELETE /command-items/:id
+
+Remove um item da comanda e repõe o estoque.
+
+## Códigos de erro comuns
+
+- `401 Unauthorized`: token ausente ou inválido
+- `403 Forbidden`: usuário sem permissão para a ação
+- `400 Bad Request`: dados inválidos ou estoque insuficiente
+- `404 Not Found`: recurso não encontrado
+
+## Exemplo de uso com curl
 
 ```bash
 curl -X POST http://localhost:3000/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@example.com","password":"senha123"}'
 ```
+
+Esse comando retorna o token que pode ser usado nas outras rotas protegidas.

@@ -1,288 +1,121 @@
 # Backend — Mini Mercado EJC
 
-## O que é o backend
+O backend é a camada responsável pela regra de negócio, autenticação, autorização e persistência dos dados. Ele expõe uma API HTTP para que o frontend consiga consumir os recursos do sistema.
 
-O backend é a parte responsável por:
+## Estrutura principal
 
-* receber requisições
-* processar dados
-* acessar o banco
-* devolver respostas
-
-No projeto do Mini Mercado, o backend foi feito usando:
-
-* Node.js
-* Express
-* Prisma ORM
-* SQLite
-
----
-
-# Estrutura inicial
-
-```bash
+```text
 backend/
-│
 ├── prisma/
 ├── src/
+│   ├── middlewares/
+│   ├── schemas/
+│   ├── utils/
 │   └── server.js
-├── package.json
-└── .env
+└── package.json
 ```
 
----
+## Tecnologias do backend
 
-# Node.js
+- Node.js: execução do servidor
+- Express: criação das rotas e middlewares
+- Prisma ORM: acesso ao banco de forma tipada e organizada
+- PostgreSQL: banco relacional principal
+- JWT: geração e validação de tokens
+- bcryptjs: proteção das senhas
+- Zod: validação das entradas das rotas
 
-## O que aprendi
+## Arquitetura de funcionamento
 
-Node.js permite executar JavaScript fora do navegador.
+O servidor é inicializado em backend/src/server.js. Ele monta:
 
-Com ele conseguimos:
+- middlewares globais, como CORS e leitura de JSON;
+- rotas para autenticação, usuários, produtos, vendas e comandas;
+- validações antes de executar as operações;
+- integração com o Prisma Client para consultar e gravar dados.
 
-* criar APIs
-* acessar banco de dados
-* criar servidores
-* trabalhar com backend
+## Camadas principais
 
----
+### 1. Middlewares
 
-# Express
+Os middlewares garantem segurança e padronização das requisições.
 
-## O que é
+- `authenticate`: valida o token JWT do usuário
+- `authorize`: verifica se o usuário possui permissão para executar a ação
+- `validate`: valida o payload enviado para a rota
 
-Express é um framework para criar servidores e APIs.
+### 2. Serviços / rotas
 
-Instalação:
+As rotas estão organizadas por recurso:
 
-```bash
-npm install express
+- `/auth`: login e validação do usuário atual
+- `/users`: cadastro e gestão de usuários
+- `/products`: cadastro, listagem e atualização de produtos
+- `/sales`: registro de vendas e atualização de estoque
+- `/commands`: criação e consulta de comandas
+- `/command-items`: adição e remoção de itens nas comandas
+- `/c/:code`: rota pública para acessar uma comanda por código
+
+## Regras de negócio
+
+### Autenticação
+
+O login recebe email e senha, valida as credenciais e retorna um token JWT. Esse token é usado nas rotas protegidas.
+
+### Autorização
+
+Os perfis definidos no sistema são:
+
+- ADMIN
+- MINIMERCADO
+- SECRETARIA
+
+Cada rota pode exigir um ou mais papéis. Exemplo:
+
+- usuários só podem ser criados por ADMIN;
+- produtos e vendas são controlados por MINIMERCADO;
+- comandas podem ser abertas por MINIMERCADO e SECRETARIA.
+
+### Fluxo de vendas
+
+Quando uma venda é registrada:
+
+1. o produto é localizado;
+2. o estoque é validado;
+3. a venda é salva no banco;
+4. o estoque do produto é reduzido.
+
+### Fluxo de comandas
+
+Ao criar uma comanda, o sistema registra quem abriu a operação. Quando itens são adicionados:
+
+- o estoque é reduzido;
+- o total da comanda é atualizado;
+- o item recebe o usuário que o adicionou.
+
+Ao fechar a comanda, o status muda para fechado e a data de fechamento é registrada.
+
+## Validação de entradas
+
+As rotas usam o Zod para garantir que os dados recebidos tenham o formato esperado. Isso evita erros de integridade e melhora a segurança do sistema.
+
+## Exemplo de fluxo de execução
+
+```text
+POST /auth/login
+  -> valida e autentica usuário
+  -> gera token JWT
+  -> frontend salva token e usuário
+
+GET /products
+  -> backend consulta o banco
+  -> retorna lista de produtos
 ```
 
----
+## Pontos importantes do backend
 
-# Criando servidor
+- o backend centraliza a lógica de negócio;
+- ele é responsável por evitar acessos indevidos;
+- ele garante que alterações de estoque e valor sejam feitas corretamente;
+- ele atua como ponte entre o frontend e o banco de dados.
 
-```js
-const express = require("express")
-
-const app = express()
-
-app.listen(3000, () => {
-  console.log("Servidor rodando")
-})
-```
-
-## O que entendi
-
-* express() cria a aplicação
-* app.listen inicia o servidor
-* porta 3000 é onde a API fica disponível
-
----
-
-# Rotas
-
-## GET
-
-Usado para buscar dados.
-
-```js
-app.get("/products", (req, res) => {
-  res.send("Lista de produtos")
-})
-```
-
----
-
-## POST
-
-Usado para criar dados.
-
-```js
-app.post("/products", (req, res) => {
-  res.send("Produto criado")
-})
-```
-
----
-
-# JSON
-
-## O que aprendi
-
-APIs normalmente trabalham usando JSON.
-
-Exemplo:
-
-```json
-{
-  "nome": "Coca-Cola",
-  "preco": 10
-}
-```
-
----
-
-# Middleware
-
-```js
-app.use(express.json())
-```
-
-## O que faz
-
-Permite o Express entender JSON enviado pelo frontend.
-
-Sem isso:
-
-```js
-req.body
-```
-
-fica undefined.
-
----
-
-# Prisma ORM
-
-## O que é
-
-Prisma é uma ORM.
-
-ORM significa:
-
-Object Relational Mapping.
-
-Ele facilita acessar o banco usando JavaScript.
-
----
-
-# Instalação Prisma
-
-```bash
-npm install prisma @prisma/client
-```
-
----
-
-# Inicialização
-
-```bash
-npx prisma init
-```
-
-Isso cria:
-
-```bash
-prisma/
-.env
-```
-
----
-
-# Generate
-
-```bash
-npx prisma generate
-```
-
-## O que aprendi
-
-Esse comando cria o Prisma Client.
-
-Sem isso o backend não consegue acessar o banco.
-
----
-
-# Migration
-
-```bash
-npx prisma migrate dev --name init
-```
-
-## O que aprendi
-
-Migration cria as tabelas no banco.
-
----
-
-# Prisma Client
-
-```js
-const { PrismaClient } = require("@prisma/client")
-
-const prisma = new PrismaClient()
-```
-
----
-
-# Buscar produtos
-
-```js
-const produtos = await prisma.produto.findMany()
-```
-
----
-
-# Criar produto
-
-```js
-await prisma.produto.create({
-  data: {
-    nome: "Coca-Cola",
-    preco: 10,
-    estoque: 20
-  }
-})
-```
-
----
-
-# Erros que enfrentei
-
-## Cannot POST /products
-
-### Causa
-
-A rota POST não existia.
-
-### Solução
-
-Criar:
-
-```js
-app.post("/products")
-```
-
----
-
-## Cannot find module '.prisma/client/default'
-
-### Causa
-
-Prisma Client não foi gerado corretamente.
-
-### Solução
-
-* remover configurações antigas
-* usar Prisma 6
-* rodar:
-
-```bash
-npx prisma generate
-```
-
----
-
-# O que aprendi até agora
-
-* criar servidor
-* criar API
-* usar Express
-* usar Prisma
-* criar banco
-* criar migrations
-* usar JSON
-* criar rotas
-* conectar backend ao banco

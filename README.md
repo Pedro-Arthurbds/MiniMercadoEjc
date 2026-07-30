@@ -1,53 +1,61 @@
 # 🛒 Mini Mercado EJC
 
-> Aplicação web para gestão de produtos, comandas e vendas em mini mercados.
+Aplicação web para gestão de produtos, comandas, vendas e usuários em um ambiente de mini mercado. O projeto tem um backend em Node.js/Express com Prisma e um frontend em React + TypeScript com Vite.
 
 [![React](https://img.shields.io/badge/React-19.2.6-blue?logo=react)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-green?logo=node.js)](https://nodejs.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.15.0-blue?logo=prisma)](https://www.prisma.io/)
-[![License](https://img.shields.io/badge/License-ISC-yellow)](LICENSE)
 
 ---
 
-## 📋 Sumário
+## Visão geral
 
-- [Sobre](#sobre)
-- [Tecnologias](#-tecnologias)
-- [Funcionalidades](#-funcionalidades)
-- [Instalação](#-instalação)
-- [Como rodar](#-como-rodar)
-- [Rotas da API](#-rotas-da-api)
-- [Estrutura do projeto](#-estrutura-do-projeto)
-- [Documentação adicional](#-documentação-adicional)
+O sistema foi pensado para apoiar o fluxo diário de um mini mercado com três pilares principais:
 
----
-
-## Sobre
-
-Mini Mercado EJC é um sistema completo para controle de estoque, vendas e comandas. O projeto foi desenvolvido com um backend em Node.js/Express e um frontend em React/TypeScript.
-
-A aplicação permite:
-
-- cadastro e edição de produtos;
+- gestão de produtos e estoque;
 - abertura e fechamento de comandas;
-- adição e remoção de itens de comandas;
-- controle de estoque e registros de venda;
-- autenticação com JWT e perfil de permissões.
+- registro de vendas e controle de permissões por perfil.
+
+A aplicação permite que diferentes papéis trabalhem com segurança e responsabilidade:
+
+- ADMIN: gerencia usuários e visualiza dados gerais;
+- MINIMERCADO: gerencia produtos, vendas e comandas;
+- SECRETARIA: cria e acompanha comandas.
 
 ---
 
-## 🛠 Tecnologias
+## Arquitetura do projeto
+
+```mermaid
+flowchart LR
+    A[Usuário no frontend React] --> B[Rotas protegidas e autenticação]
+    B --> C[API Express / Node.js]
+    C --> D[Middleware de autenticação e autorização]
+    D --> E[Prisma ORM]
+    E --> F[PostgreSQL]
+```
+
+O fluxo principal é:
+
+1. o frontend envia requisições para a API;
+2. o backend valida dados, autentica o usuário e aplica regras de negócio;
+3. o Prisma persiste e consulta os dados no banco;
+4. o frontend atualiza a interface com o resultado.
+
+---
+
+## Tecnologias principais
 
 ### Backend
 
 - Node.js
 - Express
-- Prisma
-- PostgreSQL (via `DATABASE_URL`)
+- Prisma ORM
+- PostgreSQL
 - JWT para autenticação
 - bcryptjs para hash de senhas
-- CORS
 - Zod para validação de payloads
+- CORS para integração com o frontend
 
 ### Frontend
 
@@ -63,47 +71,48 @@ A aplicação permite:
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades principais
 
-- Autenticação de usuários com JWT
-- Controle de acesso por papéis: `ADMIN`, `MINIMERCADO`, `SECRETARIA`
-- Gestão de produtos com estoque e categorias
-- Registro de vendas com decremento automático de estoque
-- Criação e fechamento de comandas
-- Adição, remoção e pagamento de itens em comandas
-- Visualização pública de comanda via código (`/c/:code`)
-- Dashboard com indicadores e filtros
-- Validação de dados no backend com Zod
+- login com autenticação JWT;
+- controle de acesso por papéis;
+- cadastro e atualização de produtos com estoque;
+- registro de vendas com decremento automático de estoque;
+- abertura, edição e fechamento de comandas;
+- inclusão e remoção de itens de comanda;
+- visualização pública de uma comanda via link compartilhável;
+- dashboard com visão geral do sistema.
 
 ---
 
-## 📦 Instalação
-
-### Requisitos
+## Requisitos
 
 - Node.js 18+
 - npm
-- PostgreSQL ou outro banco compatível com `DATABASE_URL`
+- PostgreSQL configurado via variável de ambiente
 
-### Passos
+---
+
+## Configuração local
+
+### 1) Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/MiniMercadoEjc.git
+git clone https://github.com/Pedro-Arthurbds/MiniMercadoEjc.git
 cd MiniMercadoEjc
 ```
 
-#### Backend
+### 2) Backend
 
 ```bash
 cd backend
 npm install
 ```
 
-Crie o arquivo `backend/.env` com:
+Crie um arquivo chamado `.env` com:
 
 ```env
 DATABASE_URL="postgresql://usuario:senha@localhost:5432/minimercado"
-JWT_SECRET="sua_chave_secreta_aqui"
+JWT_SECRET="uma_chave_muito_segura"
 NODE_ENV="development"
 ```
 
@@ -114,14 +123,14 @@ npx prisma migrate dev --name init
 npx prisma generate
 ```
 
-#### Frontend
+### 3) Frontend
 
 ```bash
 cd ../frontend
 npm install
 ```
 
-Crie o arquivo `frontend/.env` com a URL da API:
+Crie um arquivo `.env` com:
 
 ```env
 VITE_API_URL=http://localhost:3000
@@ -129,7 +138,7 @@ VITE_API_URL=http://localhost:3000
 
 ---
 
-## 🚀 Como rodar
+## Como rodar
 
 ### Backend
 
@@ -138,7 +147,7 @@ cd backend
 npm run dev
 ```
 
-A API roda em `http://localhost:3000`.
+A API fica disponível em `http://localhost:3000`.
 
 ### Frontend
 
@@ -147,64 +156,23 @@ cd frontend
 npm run dev
 ```
 
-A interface roda em `http://localhost:5173`.
+A interface fica disponível em `http://localhost:5173`.
 
 ---
 
-## 🔌 Rotas da API
+## Estrutura do projeto
 
-### Autenticação
-
-- `POST /auth/login` — faz login e retorna token JWT
-- `GET /auth/me` — obtém o usuário autenticado
-
-### Usuários
-
-- `POST /users` — cria um usuário (ADMIN)
-- `GET /users` — lista usuários (ADMIN)
-- `PUT /users/:id` — atualiza usuário (ADMIN)
-- `DELETE /users/:id` — exclui usuário (ADMIN)
-
-### Produtos
-
-- `GET /products` — lista produtos
-- `POST /products` — cria produto (MINIMERCADO)
-- `PUT /products/:id` — atualiza produto (MINIMERCADO)
-- `DELETE /products/:id` — deleta produto (MINIMERCADO)
-
-### Vendas
-
-- `GET /sales` — lista vendas
-- `POST /sales` — registra venda e atualiza estoque (MINIMERCADO)
-
-### Comandas
-
-- `GET /commands` — lista comandas
-- `POST /commands` — cria comanda (MINIMERCADO, SECRETARIA)
-- `GET /commands/:id` — obtém detalhes da comanda
-- `PUT /commands/:id/close` — fecha comanda (MINIMERCADO)
-- `GET /c/:code` — visualização pública de comanda
-
-### Itens de comanda
-
-- `POST /command-items` — adiciona item à comanda (MINIMERCADO)
-- `DELETE /command-items/:id` — remove item da comanda (MINIMERCADO)
-
----
-
-## 📁 Estrutura do projeto
-
-```
+```text
 MiniMercadoEjc/
 ├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma
 │   │   └── migrations/
 │   ├── src/
-│   │   ├── server.js
 │   │   ├── middlewares/
 │   │   ├── schemas/
-│   │   └── utils/
+│   │   ├── utils/
+│   │   └── server.js
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -219,58 +187,34 @@ MiniMercadoEjc/
 │   ├── backend.md
 │   ├── database.md
 │   └── frontend.md
+├── mkdocs.yml
 └── README.md
 ```
 
 ---
 
-## 📘 Documentação adicional
+## Documentação completa
 
-- `docs/api.md` — endpoints da API e exemplos
-- `docs/backend.md` — arquitetura do backend
-- `docs/database.md` — schema Prisma e modelos
-- `docs/frontend.md` — navegação e páginas do frontend
+A documentação técnica detalhada está organizada em:
 
----
+- [docs/index.md](docs/index.md) — visão geral do sistema e da documentação
+- [docs/backend.md](docs/backend.md) — arquitetura e regras do backend
+- [docs/database.md](docs/database.md) — modelagem Prisma e relacionamentos
+- [docs/frontend.md](docs/frontend.md) — estrutura da interface e rotas
+- [docs/api.md](docs/api.md) — referência das rotas da API
 
-## 🤝 Contribuindo
+Para visualizar a documentação localmente com MkDocs:
 
-Contribuições são bem-vindas. Abra uma issue ou pull request com a melhoria desejada.
+```bash
+pip install mkdocs-material
+mkdocs serve
+```
 
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| POST | `/auth/register` | Registra novo usuário |
-| POST | `/auth/login` | Faz login e retorna JWT |
-
----
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Siga os passos:
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+Acesse `http://127.0.0.1:8000`.
 
 ---
 
-## 📄 Licença
+## Contribuição
 
-Este projeto está sob a licença ISC. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Contribuições são bem-vindas. Abra uma issue ou envie um pull request com sua sugestão ou correção.
 
----
-
-## 👨‍💻 Autor
-
-Desenvolvido por [Pedro Arthur](https://github.com/Pedro-Arthurbds)
-
----
-
-## 📞 Suporte
-
-Tem dúvidas ou encontrou um bug? Abra uma [issue](https://github.com/Pedro-Arthurbds/MiniMercadoEjc/issues).
-
----
