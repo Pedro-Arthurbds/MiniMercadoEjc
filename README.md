@@ -1,108 +1,105 @@
 # 🛒 Mini Mercado EJC
 
-> Um sistema completo de gerenciamento de produtos e comandas para mini mercados, construído com tecnologias modernas.
+> Aplicação web para gestão de produtos, comandas e vendas em mini mercados.
 
 [![React](https://img.shields.io/badge/React-19.2.6-blue?logo=react)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-green?logo=node.js)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Latest-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.15.0-blue?logo=prisma)](https://www.prisma.io/)
 [![License](https://img.shields.io/badge/License-ISC-yellow)](LICENSE)
 
 ---
 
-## 📋 Tabela de Conteúdos
+## 📋 Sumário
 
-- [Sobre o Projeto](#sobre-o-projeto)
+- [Sobre](#sobre)
 - [Tecnologias](#-tecnologias)
 - [Funcionalidades](#-funcionalidades)
-- [Pré-requisitos](#-pré-requisitos)
 - [Instalação](#-instalação)
-- [Como Rodar](#-como-rodar)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [API Endpoints](#-api-endpoints)
-- [Contribuindo](#-contribuindo)
+- [Como rodar](#-como-rodar)
+- [Rotas da API](#-rotas-da-api)
+- [Estrutura do projeto](#-estrutura-do-projeto)
+- [Documentação adicional](#-documentação-adicional)
 
 ---
 
-## 📝 Sobre o Projeto
+## Sobre
 
-O Mini Mercado EJC é uma aplicação web completa para gerenciamento de produtos, vendas e comandas, desenvolvida inicialmente para atender às necessidades do encontro EJC (Encontro de Jovens com Cristo).
+Mini Mercado EJC é um sistema completo para controle de estoque, vendas e comandas. O projeto foi desenvolvido com um backend em Node.js/Express e um frontend em React/TypeScript.
 
-O sistema foi projetado com foco em simplicidade, organização e eficiência operacional, mas é flexível e adaptável, podendo ser facilmente ajustado para outros tipos de estabelecimentos comerciais, como mercados, cantinas, bares ou pequenos comércios.
+A aplicação permite:
 
-🎯 Objetivo
-Automatizar o controle de produtos e estoque
-Facilitar o registro de comandas e vendas
-Melhorar a organização do atendimento
-Reduzir erros manuais no processo de vendas:
+- cadastro e edição de produtos;
+- abertura e fechamento de comandas;
+- adição e remoção de itens de comandas;
+- controle de estoque e registros de venda;
+- autenticação com JWT e perfil de permissões.
 
 ---
 
 ## 🛠 Tecnologias
 
-### Frontend
-- **React 19** - Biblioteca JavaScript para UI
-- **TypeScript** - Tipagem estática
-- **Vite** - Build tool e dev server ultra rápido
-- **Tailwind CSS** - Framework de estilos utilitários
-- **React Router** - Roteamento de páginas
-- **Axios** - Cliente HTTP
-- **React Icons** - Ícones vetoriais
-- **QR Code** - Geração de códigos QR
-- **React Hot Toast** - Notificações elegantes
-
 ### Backend
-- **Node.js** - Runtime JavaScript
-- **Express.js** - Framework web
-- **Prisma ORM** - ORM para banco de dados
-- **PostgreSQL/SQLite** - Banco de dados
-- **JWT** - Autenticação por tokens
-- **bcryptjs** - Criptografia de senhas
-- **CORS** - Controle de origem cruzada
+
+- Node.js
+- Express
+- Prisma
+- PostgreSQL (via `DATABASE_URL`)
+- JWT para autenticação
+- bcryptjs para hash de senhas
+- CORS
+- Zod para validação de payloads
+
+### Frontend
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router DOM
+- Axios
+- React Icons
+- QRCode
+- React Hot Toast
 
 ---
 
 ## ✨ Funcionalidades
 
-- ✅ Autenticação e autorização com JWT
-- ✅ Gerenciamento de produtos com estoque
-- ✅ Sistema de comandas para vendas
-- ✅ Dashboard com estatísticas
-- ✅ Detalhes de comandas
-- ✅ Geração de QR Code para produtos
-- ✅ Interface responsiva e intuitiva
-- ✅ Validação de dados no backend
+- Autenticação de usuários com JWT
+- Controle de acesso por papéis: `ADMIN`, `MINIMERCADO`, `SECRETARIA`
+- Gestão de produtos com estoque e categorias
+- Registro de vendas com decremento automático de estoque
+- Criação e fechamento de comandas
+- Adição, remoção e pagamento de itens em comandas
+- Visualização pública de comanda via código (`/c/:code`)
+- Dashboard com indicadores e filtros
+- Validação de dados no backend com Zod
 
 ---
 
-## 📦 Pré-requisitos
+## 📦 Instalação
 
-Você precisa ter instalado:
+### Requisitos
 
-- [Node.js](https://nodejs.org/) (v18+)
-- [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
-- [Git](https://git-scm.com/)
+- Node.js 18+
+- npm
+- PostgreSQL ou outro banco compatível com `DATABASE_URL`
 
----
-
-## 🚀 Instalação
-
-### 1. Clonar o repositório
+### Passos
 
 ```bash
 git clone https://github.com/seu-usuario/MiniMercadoEjc.git
 cd MiniMercadoEjc
 ```
 
-### 2. Instalar dependências do Backend
+#### Backend
 
 ```bash
 cd backend
 npm install
 ```
 
-### 3. Configurar variáveis de ambiente
-
-Crie um arquivo `.env` na pasta `backend`:
+Crie o arquivo `backend/.env` com:
 
 ```env
 DATABASE_URL="postgresql://usuario:senha@localhost:5432/minimercado"
@@ -110,114 +107,136 @@ JWT_SECRET="sua_chave_secreta_aqui"
 NODE_ENV="development"
 ```
 
-### 4. Configurar o banco de dados
+Execute as migrações e gere o cliente Prisma:
 
 ```bash
 npx prisma migrate dev --name init
 npx prisma generate
 ```
 
-### 5. Instalar dependências do Frontend
+#### Frontend
 
 ```bash
 cd ../frontend
 npm install
 ```
 
+Crie o arquivo `frontend/.env` com a URL da API:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
 ---
 
-## 🎯 Como Rodar
+## 🚀 Como rodar
 
-### Rodar Backend (desenvolvimento)
+### Backend
 
 ```bash
 cd backend
 npm run dev
 ```
 
-O servidor estará disponível em `http://localhost:3000`
+A API roda em `http://localhost:3000`.
 
-### Rodar Frontend (desenvolvimento)
+### Frontend
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-A aplicação estará disponível em `http://localhost:5173`
-
-### Build para produção
-
-**Frontend:**
-```bash
-npm run build
-```
-
-**Backend:**
-```bash
-npm start
-```
+A interface roda em `http://localhost:5173`.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 🔌 Rotas da API
+
+### Autenticação
+
+- `POST /auth/login` — faz login e retorna token JWT
+- `GET /auth/me` — obtém o usuário autenticado
+
+### Usuários
+
+- `POST /users` — cria um usuário (ADMIN)
+- `GET /users` — lista usuários (ADMIN)
+- `PUT /users/:id` — atualiza usuário (ADMIN)
+- `DELETE /users/:id` — exclui usuário (ADMIN)
+
+### Produtos
+
+- `GET /products` — lista produtos
+- `POST /products` — cria produto (MINIMERCADO)
+- `PUT /products/:id` — atualiza produto (MINIMERCADO)
+- `DELETE /products/:id` — deleta produto (MINIMERCADO)
+
+### Vendas
+
+- `GET /sales` — lista vendas
+- `POST /sales` — registra venda e atualiza estoque (MINIMERCADO)
+
+### Comandas
+
+- `GET /commands` — lista comandas
+- `POST /commands` — cria comanda (MINIMERCADO, SECRETARIA)
+- `GET /commands/:id` — obtém detalhes da comanda
+- `PUT /commands/:id/close` — fecha comanda (MINIMERCADO)
+- `GET /c/:code` — visualização pública de comanda
+
+### Itens de comanda
+
+- `POST /command-items` — adiciona item à comanda (MINIMERCADO)
+- `DELETE /command-items/:id` — remove item da comanda (MINIMERCADO)
+
+---
+
+## 📁 Estrutura do projeto
 
 ```
 MiniMercadoEjc/
 ├── backend/
 │   ├── prisma/
-│   │   ├── schema.prisma      # Esquema do banco de dados
-│   │   ├── seed.js            # Dados iniciais
-│   │   └── migrations/         # Histórico de migrações
+│   │   ├── schema.prisma
+│   │   └── migrations/
 │   ├── src/
-│   │   ├── server.js          # Entrada principal
-│   │   ├── middleware/
-│   │   │   └── auth.js        # Middleware de autenticação
+│   │   ├── server.js
+│   │   ├── middlewares/
+│   │   ├── schemas/
 │   │   └── utils/
-│   │       └── auth.js        # Funções de autenticação
 │   └── package.json
-│
 ├── frontend/
 │   ├── src/
-│   │   ├── components/        # Componentes React
-│   │   ├── pages/             # Páginas da aplicação
-│   │   ├── services/          # Chamadas à API
-│   │   ├── contexts/          # Context API
-│   │   └── assets/            # Imagens e recursos
-│   ├── index.html
-│   ├── vite.config.ts
+│   │   ├── components/
+│   │   ├── contexts/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── App.tsx
 │   └── package.json
-│
-├── docs/                       # Documentação
-├── README.md
-└── package.json
+├── docs/
+│   ├── api.md
+│   ├── backend.md
+│   ├── database.md
+│   └── frontend.md
+└── README.md
 ```
 
 ---
 
-## 🔌 API Endpoints
+## 📘 Documentação adicional
 
-### Produtos
+- `docs/api.md` — endpoints da API e exemplos
+- `docs/backend.md` — arquitetura do backend
+- `docs/database.md` — schema Prisma e modelos
+- `docs/frontend.md` — navegação e páginas do frontend
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/products` | Lista todos os produtos |
-| POST | `/products` | Cria um novo produto |
-| GET | `/products/:id` | Obtém produto por ID |
-| PUT | `/products/:id` | Atualiza um produto |
-| DELETE | `/products/:id` | Deleta um produto |
+---
 
-### Comandas
+## 🤝 Contribuindo
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/commands` | Lista todas as comandas |
-| POST | `/commands` | Cria uma nova comanda |
-| GET | `/commands/:id` | Obtém comanda por ID |
-| PUT | `/commands/:id` | Atualiza uma comanda |
-| DELETE | `/commands/:id` | Deleta uma comanda |
+Contribuições são bem-vindas. Abra uma issue ou pull request com a melhoria desejada.
 
-### Autenticação
 
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|

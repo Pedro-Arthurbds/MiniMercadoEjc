@@ -1,0 +1,25 @@
+site_name: Mini Mercado EJC
+site_description: Documentação técnica do projeto Mini Mercado EJC
+site_author: Pedro Arthur
+repo_url: https://github.com/seu-usuario/MiniMercadoEjc
+nav:
+  - Home: index.md
+  - Backend: backend.md
+  - Database: database.md
+  - Frontend: frontend.md
+  - API: api.md
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+  font:
+    text: Roboto
+    code: Roboto Mono
+plugins:
+  - search
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/seu-usuario/MiniMercadoEjc

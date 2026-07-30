@@ -1,177 +1,97 @@
 # Frontend — Mini Mercado EJC
 
-## O que é frontend
+## Visão geral
 
-Frontend é a parte visual do sistema.
+O frontend é a aplicação React + TypeScript que fornece a interface do usuário para gerenciamento de produtos, comandas e usuários.
 
-É onde o usuário:
+### Páginas principais
 
-* vê informações
-* clica em botões
-* envia dados
-* interage com o sistema
+- `/login` — página de login
+- `/` — dashboard
+- `/products` — gerenciamento de produtos
+- `/commands` — listagem de comandas
+- `/commands/:id` — detalhes da comanda
+- `/users` — administração de usuários
+- `/c/:code` — visualização pública de comanda
 
----
+## Arquitetura
 
-# Tecnologias usadas
+- `src/App.tsx` — define rotas e rotas protegidas
+- `src/contexts/AuthContext.tsx` — gerencia autenticação e permissões
+- `src/services/api.ts` — configura Axios e token JWT
+- `src/components/ProtectedRoute.tsx` — protege rotas privadas
+- `src/pages/` — páginas da aplicação
+- `src/components/` — componentes reutilizáveis
 
-* React
-* Vite
-* JavaScript
-* CSS
+## Autenticação
 
----
+- O usuário realiza login em `/login`.
+- O token JWT é salvo em `localStorage`.
+- O `api.ts` envia o token em `Authorization` para todas as requisições.
+- `AuthContext` valida o token em `/auth/me`.
+- `ProtectedRoute` bloqueia acesso não autorizado.
 
-# React
+## Permissões
 
-## O que é
+- `ADMIN` — acesso total, incluindo gerenciamento de usuários.
+- `MINIMERCADO` — gerenciamento de produtos, vendas e comandas.
+- `SECRETARIA` — criação de comandas.
 
-React é uma biblioteca para criar interfaces.
+## Componentes importantes
 
-Ela trabalha usando componentes.
+### `ProductsPage`
 
----
+- Obtém produtos via `GET /products`
+- Filtra produtos por nome e categoria
+- Exibe indicadores de estoque
+- Permite criar produto para papel `MINIMERCADO`
 
-# Componentes
+### `CommandsPage`
 
-Exemplo:
+- Obtém comandas via `GET /commands`
+- Filtra comandas abertas, fechadas e por nome do cliente
+- Permite abrir nova comanda via modal
 
-```jsx
-function App() {
-  return <h1>Mini Mercado</h1>
-}
+### `CommandDetailsPage`
 
-export default App
+- Obtém comanda via `GET /commands/:id`
+- Adiciona item via `POST /command-items`
+- Fecha comanda via `PUT /commands/:id/close`
+- Gera QR Code para acesso público
+
+### `UsersPage`
+
+- Lista usuários via `GET /users`
+- Cria e edita usuários via `/users`
+- Remove usuários
+- Disponível apenas para papel `ADMIN`
+
+## Configuração de ambiente
+
+Crie `frontend/.env` com:
+
+```env
+VITE_API_URL=http://localhost:3000
 ```
 
----
+## Dependências principais
 
-# JSX
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Axios
+- React Router DOM
+- React Icons
+- qrcode
+- react-hot-toast
 
-## O que aprendi
-
-JSX permite misturar HTML com JavaScript.
-
-Exemplo:
-
-```jsx
-<h1>Olá</h1>
-```
-
----
-
-# Vite
-
-## O que é
-
-Ferramenta usada para criar projetos React rapidamente.
-
-Criação:
+## Como executar
 
 ```bash
-npm create vite@latest
+cd frontend
+npm install
+npm run dev
 ```
 
----
-
-# App.jsx
-
-Arquivo principal do React.
-
-Tudo começa nele.
-
----
-
-# Estado (useState)
-
-## O que é
-
-Permite armazenar dados no componente.
-
-Exemplo:
-
-```jsx
-const [produtos, setProdutos] = useState([])
-```
-
----
-
-# useEffect
-
-## O que faz
-
-Executa código automaticamente.
-
-Muito usado para buscar dados da API.
-
-Exemplo:
-
-```jsx
-useEffect(() => {
-  buscarProdutos()
-}, [])
-```
-
----
-
-# Consumindo API
-
-```js
-fetch("http://localhost:3000/products")
-```
-
-## O que aprendi
-
-O frontend conversa com o backend através de requisições HTTP.
-
----
-
-# Métodos HTTP
-
-## GET
-
-Buscar dados.
-
-## POST
-
-Criar dados.
-
----
-
-# Renderização de lista
-
-```jsx
-{produtos.map((produto) => (
-  <div key={produto.id}>
-    {produto.nome}
-  </div>
-))}
-```
-
-# Componentização
-Separação de partes da inteface
-Vatagens:
--Organização
--Reutilização
--Escalabilidade
-
-```
-type ProductProps
--Validação de tipagem!
-
-```
-
-
-
----
-
-# O que aprendi até agora
-
-* criar interface
-* usar React
-* usar componentes
-* usar JSX
-* consumir API
-* renderizar listas
-* usar estados
-* integrar frontend e backend
+A aplicação ficará disponível em `http://localhost:5173`.

@@ -106,7 +106,7 @@ function ItemRow({
         </p>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <span className="text-sm font-extrabold text-slate-700 tabular-nums">
           {formatCurrency(subtotal)}
         </span>
@@ -281,7 +281,7 @@ function AddItemModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition shrink-0"
           >
             ✕
           </button>
@@ -586,7 +586,7 @@ export function CommandDetailsPage() {
                     <button
                       onClick={() => openModal(product)}
                       disabled={outOfStock}
-                      className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all active:scale-95 ${
+                      className={`shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all active:scale-95 ${
                         outOfStock
                           ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                           : inCommand
@@ -688,7 +688,7 @@ export function CommandDetailsPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-center items-start md:items-end min-w-[180px] gap-1">
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-center items-start md:items-end min-w-45 gap-1">
                 {totalPaid > 0 && (
                   <div className="flex items-center gap-2 w-full md:justify-end">
                     <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">

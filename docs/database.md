@@ -1,160 +1,126 @@
- Banco de Dados — Mini Mercado EJC
+# Banco de Dados — Mini Mercado EJC
 
-## O que é banco de dados
+O projeto usa Prisma ORM para modelar o banco de dados e fazer consultas em JavaScript.
 
-Banco de dados é onde as informações ficam armazenadas.
+## Configuração
 
-No Mini Mercado, o banco guarda:
+O arquivo `backend/prisma/schema.prisma` define o datasource e os modelos.
 
-* produtos
-* preços
-* estoque
-* informações futuras do sistema
+- `provider = "postgresql"`
+- `url = env("DATABASE_URL")`
 
----
+O banco é configurado com a variável de ambiente `DATABASE_URL`.
 
-# SQLite
+## Modelos
 
-## O que é
-
-SQLite é um banco leve baseado em arquivo.
-
-Foi escolhido porque:
-
-* é simples
-* fácil para iniciantes
-* não precisa instalar servidor
-
----
-
-# Schema
-
-## O que é
-
-Schema define a estrutura do banco.
-
-Exemplo:
+### Product
 
 ```prisma
-model Produto {
+model Product {
   id        Int      @id @default(autoincrement())
-  nome      String
-  preco     Float
-  estoque   Int
+  name      String
+  category  String
+  price     Float
+  stock     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  items CommandItem[]
+}
+```
+
+### Sale
+
+```prisma
+model Sale {
+  id        Int      @id @default(autoincrement())
+  product   String
+  quantity  Int
+  total     Float
   createdAt DateTime @default(now())
 }
 ```
 
----
-
-# Campos
-
-## O que aprendi
-
-### Int
-
-Número inteiro.
-
-### String
-
-Texto.
-
-### Float
-
-Número decimal.
-
-### DateTime
-
-Data e hora.
-
----
-
-# Primary Key
+### User
 
 ```prisma
-@id
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+
+  openedCommands Command[]     @relation("OpenedCommands")
+  closedCommands Command[]     @relation("ClosedCommands")
+  addedItems     CommandItem[] @relation("AddedItems")
+}
 ```
 
-Identificador único.
-
----
-
-# Autoincrement
+### Command
 
 ```prisma
-@default(autoincrement())
+model Command {
+  id            Int      @id @default(autoincrement())
+  customer      String
+  total         Float    @default(0)
+  createdAt     DateTime @default(now())
+  closed        Boolean  @default(false)
+  closedAt      DateTime?
+  publicCode    String   @unique @default(uuid())
+  openedByUserId Int?
+  openedBy       User?    @relation("OpenedCommands", fields: [openedByUserId], references: [id])
+  closedByUserId Int?
+  closedBy       User?    @relation("ClosedCommands", fields: [closedByUserId], references: [id])
+  items         CommandItem[]
+}
 ```
 
-O ID aumenta automaticamente.
+### CommandItem
 
----
-
-# Banco relacional
-
-## O que aprendi
-
-Banco relacional organiza dados em tabelas.
-
-Exemplo:
-
-| id | nome | preco |
-| -- | ---- | ----- |
-| 1  | Coca | 10    |
-
----
-
-# Migration
-
-## O que faz
-
-Transforma o schema em tabelas reais.
-
-Comando:
-
-```bash
-npx prisma migrate dev --name init
+```prisma
+model CommandItem {
+  id            Int      @id @default(autoincrement())
+  quantity      Int
+  createdAt     DateTime @default(now())
+  paid          Boolean  @default(false)
+  commandId     Int
+  command       Command  @relation(fields: [commandId], references: [id])
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id])
+  addedByUserId Int?
+  addedBy       User?     @relation("AddedItems", fields: [addedByUserId], references: [id])
+}
 ```
 
----
+### Role
 
-# Prisma Studio
-
-```bash
-npx prisma studio
+```prisma
+enum Role {
+  ADMIN
+  MINIMERCADO
+  SECRETARIA
+}
 ```
 
-## O que é
+## Relacionamentos
 
-Interface visual do banco.
+- Um `Command` possui muitos `CommandItem`.
+- Um `Product` pode aparecer em muitos `CommandItem`.
+- Um `User` pode abrir e fechar várias `Command`.
+- Um `User` pode adicionar vários `CommandItem`.
 
-Permite:
+## Scripts Prisma
 
-* ver dados
-* editar dados
-* adicionar registros
+- `npx prisma migrate dev --name init` — criar/migrar tabelas no banco
+- `npx prisma generate` — gerar o client Prisma
+- `npx prisma studio` — abrir interface visual do banco
 
----
+## Como funciona no backend
 
-# Fluxo do sistema
-
-```text
-Frontend → Backend → Prisma → Banco de Dados
-```
-
----
-
-# O que aprendi até agora
-
-* criar banco
-* criar tabelas
-* criar models
-* usar Prisma
-* usar migrations
-* armazenar dados
-* entender relações entre backend e banco
-* usar SQLite
-
-
-Prisma é uma ferramenta que permite
-acessar banco usando JavaScript
-sem escrever SQL manualmente.
+- `Product` representa itens em estoque.
+- `Sale` registra vendas concluídas.
+- `Command` representa uma comanda aberta ou fechada.
+- `CommandItem` representa itens adicionados à comanda.
+- `publicCode` permite acesso público a comandas sem login.
