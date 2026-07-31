@@ -8,4 +8,43 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/auth': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/users': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/products': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/sales': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/commands': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/command-items': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/c': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })

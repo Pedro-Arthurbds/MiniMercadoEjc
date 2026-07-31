@@ -36,6 +36,61 @@ const {
 const prisma = new PrismaClient();
 const app = express();
 
+const isProduction = process.env.NODE_ENV === "production";
+const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_RATE_LIMIT_MAX = 10;
+const loginRateLimits = new Map();
+
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return Object.fromEntries(
+    cookieHeader.split(";").map((cookie) => {
+      const [name, ...rest] = cookie.trim().split("=");
+      return [name, rest.join("=")];
+    }),
+  );
+}
+
+function getRateLimitKey(req) {
+  return (
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip || "unknown"
+  );
+}
+
+function authRateLimiter(req, res, next) {
+  const key = getRateLimitKey(req);
+  const now = Date.now();
+  const entry = loginRateLimits.get(key) || {
+    count: 0,
+    firstAttemptAt: now,
+  };
+
+  if (now - entry.firstAttemptAt > LOGIN_RATE_LIMIT_WINDOW_MS) {
+    entry.count = 0;
+    entry.firstAttemptAt = now;
+  }
+
+  entry.count += 1;
+  loginRateLimits.set(key, entry);
+
+  if (entry.count > LOGIN_RATE_LIMIT_MAX) {
+    return res.status(429).json({
+      error: "Muitas tentativas de login. Tente novamente mais tarde.",
+    });
+  }
+
+  next();
+}
+
+function securityHeaders(req, res, next) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+  next();
+}
+
 // ── Middlewares ──────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
@@ -54,6 +109,8 @@ app.use(
     credentials: true,
   }),
 );
+app.use(securityHeaders);
+app.disable("x-powered-by");
 app.use(express.json());
 
 // ── Rota raiz (teste rápido) ─────────────────────────────────
@@ -65,30 +122,55 @@ app.get("/", (req, res) => {
 //  ROTAS DE AUTENTICAÇÃO  (/auth)
 // ============================================================
 
-app.post("/auth/login", validate(loginSchema), async (req, res) => {
-  const { email, password } = req.body;
+app.post(
+  "/auth/login",
+  authRateLimiter,
+  validate(loginSchema),
+  async (req, res) => {
+    const { email, password } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return res.status(401).json({ error: "Email ou senha inválidos" });
-  }
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: "Email ou senha inválidos" });
+    }
 
-  const valid = await comparePassword(password, user.password);
-  if (!valid) {
-    return res.status(401).json({ error: "Email ou senha inválidos" });
-  }
+    const valid = await comparePassword(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Email ou senha inválidos" });
+    }
 
-  const token = generateToken(user);
-  res.json({
-    token,
-    user: { id: user.id, name: user.name, role: user.role },
-  });
-});
+    const token = generateToken(user);
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 8 * 60 * 60 * 1000,
+      path: "/",
+    };
+
+    res.cookie("token", token, cookieOptions);
+
+    res.json({
+      user: { id: user.id, name: user.name, role: user.role },
+    });
+  },
+);
 
 // rota para validar token e obter usuário atual
 app.get("/auth/me", authenticate, async (req, res) => {
   const user = req.user; // preenchido pelo middleware authenticate
   res.json({ user: { id: user.id, name: user.name, role: user.role } });
+});
+
+app.post("/auth/logout", authenticate, async (req, res) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+  };
+  res.clearCookie("token", cookieOptions);
+  res.json({ message: "Logout realizado com sucesso" });
 });
 
 // ============================================================

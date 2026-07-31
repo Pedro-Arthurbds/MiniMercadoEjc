@@ -3,6 +3,12 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+if (!JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET não está configurado. Defina a variável de ambiente JWT_SECRET antes de iniciar o servidor.",
+  );
+}
+
 async function hashPassword(plainPassword) {
   return bcrypt.hash(plainPassword, 10);
 }
@@ -19,4 +25,24 @@ function generateToken(user) {
   );
 }
 
-module.exports = { hashPassword, comparePassword, generateToken };
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return Object.fromEntries(
+    cookieHeader.split(";").map((cookie) => {
+      const [name, ...rest] = cookie.trim().split("=");
+      return [name, rest.join("=")];
+    }),
+  );
+}
+
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
+  }
+
+  const cookies = parseCookies(req.headers.cookie);
+  return cookies.token;
+}
+
+module.exports = { hashPassword, comparePassword, generateToken, extractToken };

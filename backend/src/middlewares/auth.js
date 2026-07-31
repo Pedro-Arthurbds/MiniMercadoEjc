@@ -1,12 +1,12 @@
 const jwt = require("jsonwebtoken");
+const { extractToken } = require("../utils/auth");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 function authenticate(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) {
+  const token = extractToken(req);
+  if (!token) {
     return res.status(401).json({ error: "Não autenticado" });
   }
-  const token = header.split(" ")[1];
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload; // { id, role, name }

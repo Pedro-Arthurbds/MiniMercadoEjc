@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +16,6 @@ export type User = {
 
 type AuthContextType = {
   user: User | null;
-  token: string | null;
   isInitializing: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
@@ -36,26 +37,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("token"),
-  );
   const [isInitializing, setIsInitializing] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    } else {
-      delete api.defaults.headers.common["Authorization"];
-    }
-  }, [token]);
 
   // initialize: validate token and fetch user info if needed
   useEffect(() => {
     let mounted = true;
     async function init() {
-      if (!token) {
-        setIsInitializing(false);
+      const stored = localStorage.getItem("user");
+      if (!stored) {
+        if (mounted) setIsInitializing(false);
         return;
       }
       try {
@@ -63,9 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
         setUser(resp.data.user);
       } catch (e) {
-        localStorage.removeItem("token");
         localStorage.removeItem("user");
-        setToken(null);
         setUser(null);
       } finally {
         if (mounted) setIsInitializing(false);
@@ -74,9 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
     // listen for global logout events
     const handler = () => {
-      localStorage.removeItem("token");
       localStorage.removeItem("user");
-      setToken(null);
       setUser(null);
       navigate("/login");
     };
@@ -89,19 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string): Promise<User> {
     const response = await api.post("/auth/login", { email, password });
-    const { token: newToken, user: newUser } = response.data;
+    const { user: newUser } = response.data;
 
-    localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
-    setToken(newToken);
     setUser(newUser);
     return newUser;
   }
 
-  function logout() {
-    localStorage.removeItem("token");
+  async function logout() {
+    try {
+      await api.post("/auth/logout");
+    } catch (e) {
+      // ignore network/logout failure and clear local state anyway
+    }
     localStorage.removeItem("user");
-    setToken(null);
     setUser(null);
     navigate("/login");
   }
@@ -126,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
         isInitializing,
         login,
         logout,

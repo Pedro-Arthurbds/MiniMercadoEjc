@@ -333,14 +333,14 @@ export function DashboardPage() {
                     <div key={name}>
                       <div className="flex items-center gap-2 mb-1.5">
                         <span
-                          className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0 ${i === 0 ? "bg-indigo-500 text-white" : "bg-slate-100 text-slate-500"}`}
+                          className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0 ${i === 0 ? "bg-indigo-500 text-white" : "bg-slate-100 text-slate-500"}`}
                         >
                           {i + 1}
                         </span>
                         <span className="text-sm font-medium text-slate-700 truncate flex-1">
                           {name}
                         </span>
-                        <span className="text-xs font-bold text-indigo-600 tabular-nums flex-shrink-0">
+                        <span className="text-xs font-bold text-indigo-600 tabular-nums shrink-0">
                           {qty}×
                         </span>
                       </div>
@@ -436,7 +436,7 @@ export function DashboardPage() {
                             key={`event-${idx}`}
                             className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition"
                           >
-                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-200">
+                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-blue-200">
                               <FaPlus className="text-blue-700 text-xs" />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -461,7 +461,7 @@ export function DashboardPage() {
                             key={`event-${idx}`}
                             className="flex items-start gap-3 p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition"
                           >
-                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-purple-200">
+                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-purple-200">
                               <FaLock className="text-purple-700 text-xs" />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -486,7 +486,7 @@ export function DashboardPage() {
                             key={`event-${idx}`}
                             className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition"
                           >
-                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-emerald-200">
+                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-emerald-200">
                               <FaCheckCircle className="text-emerald-700 text-xs" />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -494,7 +494,7 @@ export function DashboardPage() {
                                 <p className="text-sm font-semibold text-slate-700 truncate">
                                   {event.product}
                                 </p>
-                                <span className="text-xs font-bold text-emerald-700 tabular-nums flex-shrink-0">
+                                <span className="text-xs font-bold text-emerald-700 tabular-nums shrink-0">
                                   R${" "}
                                   {event.total?.toLocaleString("pt-BR", {
                                     minimumFractionDigits: 2,
@@ -518,7 +518,7 @@ export function DashboardPage() {
                             key={`event-${idx}`}
                             className="flex items-start gap-3 p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition"
                           >
-                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-indigo-200">
+                            <div className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-indigo-200">
                               <FaClipboardList className="text-indigo-700 text-xs" />
                             </div>
                             <div className="min-w-0 flex-1">

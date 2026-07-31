@@ -99,6 +99,22 @@ Ao fechar a comanda, o status muda para fechado e a data de fechamento é regist
 
 As rotas usam o Zod para garantir que os dados recebidos tenham o formato esperado. Isso evita erros de integridade e melhora a segurança do sistema.
 
+## Melhorias de segurança implementadas
+
+- Autenticação por cookie JWT `HttpOnly` para reduzir exposição de tokens em JavaScript.
+- Logout via `POST /auth/logout` que limpa o cookie de autenticação.
+- Rate limiting de login para mitigar ataques de força bruta.
+- Segurança de headers no backend:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Referrer-Policy: no-referrer`
+  - `Cross-Origin-Opener-Policy: same-origin`
+  - `Cross-Origin-Resource-Policy: same-origin`
+- Exigência de `JWT_SECRET` em tempo de inicialização, evitando servidores com segredo ausente.
+- Validação de payloads com Zod em todas as rotas principais.
+- No frontend, o Axios é configurado com `withCredentials: true` para enviar cookies de sessão.
+- Foi verificado que não há rotas de file-serving que criem vulnerabilidade de path bypass.
+- O projeto não apresenta configurações de Row Level Security (RLS) no Prisma schema ou nas migrações atuais.
 ## Exemplo de fluxo de execução
 
 ```text

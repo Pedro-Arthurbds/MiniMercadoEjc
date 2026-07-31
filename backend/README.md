@@ -96,6 +96,18 @@ O arquivo `backend/src/schemas/schemas.js` define as regras de validação para:
 
 O backend usa Prisma para acesso ao banco de dados. O arquivo `backend/prisma/schema.prisma` define os modelos e relações.
 
+## Melhorias de segurança
+
+- Autenticação por cookie JWT `HttpOnly` e `Secure` para reduzir exposição de token em JavaScript.
+- Logout via `POST /auth/logout` para limpar a sessão no browser.
+- Rate limiting para login com limite de tentativas por IP.
+- Cabeçalhos de segurança adicionais configurados no backend.
+- O servidor exige `JWT_SECRET` em tempo de inicialização.
+- Validação de payloads com Zod em todas as rotas principais.
+- O frontend está configurado para enviar cookies de sessão com `withCredentials: true`.
+- Não há rotas de file-serving abertas que permitam path bypass no backend.
+- Não há RLS configurado no schema Prisma ou nas migrações atuais.
+
 ### Dependências principais
 
 - `express`

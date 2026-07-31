@@ -149,6 +149,18 @@ npm run dev
 
 A API fica disponível em `http://localhost:3000`.
 
+## Melhorias de segurança
+
+- Autenticação aprimorada: o login agora emite um cookie JWT `HttpOnly` em vez de armazenar o token em `localStorage`.
+- Logout protegido: `POST /auth/logout` limpa o cookie de sessão e encerra a sessão no browser.
+- Rate limiting no backend: limite de tentativas de login configurado para reduzir ataques de força bruta.
+- Cabeçalhos de segurança adicionais: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cross-Origin-Opener-Policy` e `Cross-Origin-Resource-Policy`.
+- JWT secreto obrigatório: o servidor falha ao iniciar se `JWT_SECRET` não estiver definido.
+- Validação forte de entradas: todas as rotas críticas usam Zod para validar payloads antes de processar dados.
+- Frontend com cookies seguros: o cliente Axios usa `withCredentials: true` para enviar o token no cookie.
+- Verificação de path bypass: o backend não possui rotas de file serving que aceitem caminhos arbitrários.
+- RLS não configurado no schema/migrations: o controle de acesso é realizado pelo backend e não por políticas de Row Level Security no banco.
+
 ### Frontend
 
 ```bash
