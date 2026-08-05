@@ -95,6 +95,7 @@ function securityHeaders(req, res, next) {
 const allowedOrigins = [
   "http://localhost:5173",
   "https://mini-mercado-ejc.vercel.app",
+  "https://mini-mercado-ejc-demo-umber.vercel.app",
 ];
 
 app.use(
