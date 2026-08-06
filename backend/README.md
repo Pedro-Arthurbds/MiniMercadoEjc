@@ -56,6 +56,22 @@ backend/
 - `PUT /users/:id`: atualiza usuário (ADMIN)
 - `DELETE /users/:id`: remove usuário (ADMIN)
 
+Cada usuário contém os campos:
+
+O seed do projeto cria três usuários padrão para testes:
+
+- `admin@minimercado.com` / `123456` → `ADMIN`
+- `secretaria@minimercado.com` / `123456` → `SECRETARIA`
+- `caixa@minimercado.com` / `123456` → `MINIMERCADO`
+
+- `id`
+- `name`
+- `email`
+- `role`
+- `createdAt`
+
+A rota `GET /auth/me` retorna o usuário atual com base no token JWT.
+
 ### Produtos
 
 - `GET /products`: lista produtos

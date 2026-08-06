@@ -44,7 +44,32 @@ Resposta:
 
 Retorna o usuário autenticado com base no token enviado.
 
+Resposta:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Admin",
+    "role": "ADMIN"
+  }
+}
+```
+
 ## Usuários
+
+Os usuários representam as pessoas que acessam o sistema. Cada usuário possui:
+
+> O seed do projeto cria três usuários padrão para facilitar o teste inicial do sistema:
+>
+> - `admin@minimercado.com` / `123456` com papel `ADMIN`
+> - `secretaria@minimercado.com` / `123456` com papel `SECRETARIA`
+> - `caixa@minimercado.com` / `123456` com papel `MINIMERCADO`
+
+- `id`: identificador numérico
+- `name`: nome completo
+- `email`: e-mail único
+- `role`: `ADMIN`, `MINIMERCADO` ou `SECRETARIA`
 
 ### POST /users
 
@@ -61,17 +86,69 @@ Body:
 }
 ```
 
+Resposta:
+
+```json
+{
+  "id": 3,
+  "name": "Maria",
+  "email": "maria@example.com",
+  "role": "SECRETARIA"
+}
+```
+
 ### GET /users
 
-Lista os usuários cadastrados.
+Lista os usuários cadastrados. Requer perfil `ADMIN`.
+
+Resposta:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Admin",
+    "email": "admin@example.com",
+    "role": "ADMIN"
+  },
+  {
+    "id": 2,
+    "name": "João",
+    "email": "joao@example.com",
+    "role": "MINIMERCADO"
+  }
+]
+```
 
 ### PUT /users/:id
 
-Atualiza um usuário existente.
+Atualiza um usuário existente. Requer perfil `ADMIN`.
+
+Body:
+
+```json
+{
+  "name": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "role": "SECRETARIA",
+  "password": "novaSenha123"
+}
+```
+
+Resposta:
+
+```json
+{
+  "id": 3,
+  "name": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "role": "SECRETARIA"
+}
+```
 
 ### DELETE /users/:id
 
-Remove um usuário, desde que não seja o próprio usuário logado.
+Remove um usuário. Requer perfil `ADMIN` e não é permitido remover o próprio usuário autenticado.
 
 ## Produtos
 

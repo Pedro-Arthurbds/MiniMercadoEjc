@@ -8,15 +8,14 @@ datasource db {
 }
 
 model Product {
-  id        Int      @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   name      String
   category  String
   price     Float
-  stock     Int      @default(0)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  items CommandItem[]
+  stock     Int           @default(0)
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  items     CommandItem[]
 }
 
 model Sale {
@@ -27,57 +26,48 @@ model Sale {
   createdAt DateTime @default(now())
 }
 
-enum Role {
-  ADMIN
-  MINIMERCADO
-  SECRETARIA
-}
-
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role
-  createdAt DateTime @default(now())
-
-  openedCommands Command[]     @relation("OpenedCommands")
+  id             Int           @id @default(autoincrement())
+  name           String
+  email          String        @unique
+  password       String
+  role           Role
+  createdAt      DateTime      @default(now())
   closedCommands Command[]     @relation("ClosedCommands")
+  openedCommands Command[]     @relation("OpenedCommands")
   addedItems     CommandItem[] @relation("AddedItems")
 }
 
 model Command {
-  id        Int      @id @default(autoincrement())
-  customer  String
-  total     Float    @default(0)
-  createdAt DateTime @default(now())
-
-  items CommandItem[]
-
-  closed   Boolean   @default(false)
-  closedAt DateTime?
-
-  publicCode String @unique @default(uuid())
-
+  id             Int           @id @default(autoincrement())
+  customer       String
+  total          Float         @default(0)
+  createdAt      DateTime      @default(now())
+  closed         Boolean       @default(false)
+  closedAt       DateTime?
+  publicCode     String        @unique
   openedByUserId Int?
-  openedBy       User? @relation("OpenedCommands", fields: [openedByUserId], references: [id])
-
   closedByUserId Int?
-  closedBy       User? @relation("ClosedCommands", fields: [closedByUserId], references: [id])
+  closedBy       User?         @relation("ClosedCommands", fields: [closedByUserId], references: [id])
+  openedBy       User?         @relation("OpenedCommands", fields: [openedByUserId], references: [id])
+  items          CommandItem[]
 }
 
 model CommandItem {
-  id        Int      @id @default(autoincrement())
-  quantity  Int
-  createdAt DateTime @default(now())
-  paid      Boolean  @default(false)
-
-  command   Command @relation(fields: [commandId], references: [id])
-  commandId Int
-
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int
-
+  id            Int      @id @default(autoincrement())
+  quantity      Int
+  createdAt     DateTime @default(now())
+  commandId     Int
+  productId     Int
   addedByUserId Int?
-  addedBy       User? @relation("AddedItems", fields: [addedByUserId], references: [id])
+  paid          Boolean  @default(false)
+  addedBy       User?    @relation("AddedItems", fields: [addedByUserId], references: [id])
+  command       Command  @relation(fields: [commandId], references: [id])
+  product       Product  @relation(fields: [productId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MINIMERCADO
+  SECRETARIA
 }
