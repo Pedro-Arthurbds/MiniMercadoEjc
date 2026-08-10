@@ -40,6 +40,8 @@ const isProduction = process.env.NODE_ENV === "production";
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX = 10;
 const loginRateLimits = new Map();
+const crypto = require("crypto"); // adicionar no topo do server.js, junto com os outros requires
+
 
 function parseCookies(cookieHeader) {
   if (!cookieHeader) return {};
@@ -350,7 +352,6 @@ app.get("/sales", authenticate, authorize(), async (req, res) => {
 // ============================================================
 //  ROTAS DE COMANDAS  (/commands)
 // ============================================================
-
 app.post(
   "/commands",
   authenticate,
@@ -361,7 +362,11 @@ app.post(
       const { customer } = request.body;
 
       const command = await prisma.command.create({
-        data: { customer, openedByUserId: request.user.id },
+        data: {
+          customer,
+          openedByUserId: request.user.id,
+          publicCode: crypto.randomUUID(),
+        },
       });
 
       response.status(201).json(command);
