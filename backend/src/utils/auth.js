@@ -27,10 +27,10 @@ function generateToken(user) {
 
 function extractToken(req) {
   const authHeader = req.headers.authorization;
-  if (authHeader?.startWith("Bearer ")) {
-    return authHeader.split(" ") [1]
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
   }
-  return null
+  return null;
 }
 
 module.exports = { hashPassword, comparePassword, generateToken, extractToken}
