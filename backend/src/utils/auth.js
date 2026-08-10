@@ -25,24 +25,12 @@ function generateToken(user) {
   );
 }
 
-function parseCookies(cookieHeader) {
-  if (!cookieHeader) return {};
-  return Object.fromEntries(
-    cookieHeader.split(";").map((cookie) => {
-      const [name, ...rest] = cookie.trim().split("=");
-      return [name, rest.join("=")];
-    }),
-  );
-}
-
 function extractToken(req) {
   const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.split(" ")[1];
+  if (authHeader?.startWith("Bearer ")) {
+    return authHeader.split(" ") [1]
   }
-
-  const cookies = parseCookies(req.headers.cookie);
-  return cookies.token;
+  return null
 }
 
-module.exports = { hashPassword, comparePassword, generateToken, extractToken };
+module.exports = { hashPassword, comparePassword, generateToken, extractToken}

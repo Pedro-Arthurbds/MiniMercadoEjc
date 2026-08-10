@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { api } from "../services/api";
+import { clearAuth, getUser, setAuth } from "../services/tokenStorage";
 
 type Role = "ADMIN" | "MINIMERCADO" | "SECRETARIA";
 
@@ -33,18 +34,14 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<User | null>(() => getUser());
   const [isInitializing, setIsInitializing] = useState(true);
   const navigate = useNavigate();
 
-  // initialize: validate token and fetch user info if needed
   useEffect(() => {
     let mounted = true;
     async function init() {
-      const stored = localStorage.getItem("user");
+      const stored = getUser();
       if (!stored) {
         if (mounted) setIsInitializing(false);
         return;
@@ -54,16 +51,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
         setUser(resp.data.user);
       } catch (e) {
-        localStorage.removeItem("user");
+        clearAuth();
         setUser(null);
       } finally {
         if (mounted) setIsInitializing(false);
       }
     }
     init();
-    // listen for global logout events
     const handler = () => {
-      localStorage.removeItem("user");
+      clearAuth();
       setUser(null);
       navigate("/login");
     };
@@ -72,27 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       window.removeEventListener("app:logout", handler);
     };
-  }, []); // run once on mount
+  }, []);
 
   async function login(email: string, password: string): Promise<User> {
     const response = await api.post("/auth/login", { email, password });
-    const { user: newUser } = response.data;
+    const { token, user: newUser } = response.data;
 
-    localStorage.setItem("user", JSON.stringify(newUser));
+    setAuth(token, newUser);
     setUser(newUser);
     return newUser;
   }
 
-  async function logout() {
-    try {
-      await api.post("/auth/logout");
-    } catch (e) {
-      // ignore network/logout failure and clear local state anyway
-    }
-    localStorage.removeItem("user");
+  function logout() {
+    clearAuth();
     setUser(null);
     navigate("/login");
   }
+
 
   const role = user?.role;
 

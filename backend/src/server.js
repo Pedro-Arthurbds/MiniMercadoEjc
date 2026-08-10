@@ -141,17 +141,9 @@ app.post(
     }
 
     const token = generateToken(user);
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
-      maxAge: 8 * 60 * 60 * 1000,
-      path: "/",
-    };
-
-    res.cookie("token", token, cookieOptions);
 
     res.json({
+      token,
       user: { id: user.id, name: user.name, role: user.role },
     });
   },
@@ -163,16 +155,6 @@ app.get("/auth/me", authenticate, async (req, res) => {
   res.json({ user: { id: user.id, name: user.name, role: user.role } });
 });
 
-app.post("/auth/logout", authenticate, async (req, res) => {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    path: "/",
-  };
-  res.clearCookie("token", cookieOptions);
-  res.json({ message: "Logout realizado com sucesso" });
-});
 
 // ============================================================
 //  ROTAS DE USUÁRIOS  (/users) — apenas ADMIN
