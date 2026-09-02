@@ -13,12 +13,14 @@ export type User = {
   id: number;
   name: string;
   role: Role;
+  mustChangePassword: boolean;
 };
 
 type AuthContextType = {
   user: User | null;
   isInitializing: boolean;
   login: (email: string, password: string) => Promise<User>;
+  changePassword: (password: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   hasRole: (...roles: Role[]) => boolean;
@@ -79,6 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return newUser;
   }
 
+  async function changePassword(password: string): Promise<User> {
+    const response = await api.put("/auth/change-password", { password });
+    const updatedUser = response.data.user as User;
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    return updatedUser;
+  }
+
   function logout() {
     clearAuth();
     setUser(null);
@@ -108,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isInitializing,
         login,
+        changePassword,
         logout,
         isAuthenticated: !!user,
         hasRole,

@@ -17,6 +17,10 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
+  if (user.mustChangePassword && window.location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />;
+  }
+
   if (allowedRoles && !hasRole(...allowedRoles)) {
     return <Navigate to="/products" replace />;
   }

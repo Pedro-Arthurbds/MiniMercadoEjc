@@ -44,6 +44,18 @@ Resposta:
 
 Retorna o usuário autenticado com base no token enviado.
 
+### PUT /auth/change-password
+
+Altera a senha do usuário autenticado e conclui a exigência de troca no primeiro acesso.
+
+Body:
+
+```json
+{
+  "password": "minha-nova-senha"
+}
+```
+
 Resposta:
 
 ```json
@@ -70,6 +82,7 @@ Os usuários representam as pessoas que acessam o sistema. Cada usuário possui:
 - `name`: nome completo
 - `email`: e-mail único
 - `role`: `ADMIN`, `MINIMERCADO` ou `SECRETARIA`
+- `mustChangePassword`: indica se o usuário deve escolher uma senha no primeiro acesso
 
 ### POST /users
 
@@ -82,9 +95,12 @@ Body:
   "name": "Maria",
   "email": "maria@example.com",
   "password": "senha123",
-  "role": "SECRETARIA"
+  "role": "SECRETARIA",
+  "mustChangePassword": true
 }
 ```
+
+Quando essa opção é `true`, o usuário entra com a senha provisória e é redirecionado para escolher uma senha pessoal.
 
 Resposta:
 

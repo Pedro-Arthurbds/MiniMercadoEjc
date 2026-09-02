@@ -312,6 +312,24 @@
   font-size: 11px;
 }
 
+.change-password-card {
+  width: min(440px, 100%);
+  padding: 42px;
+  background: #fffdf8;
+  border: 1px solid rgba(22, 45, 61, 0.08);
+  box-shadow: 0 24px 70px rgba(22, 45, 61, 0.13);
+}
+
+.change-password-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 24px;
+  color: var(--login-ink);
+  background: #f6c85f;
+}
+
 @media (max-width: 700px) {
   .login-shell {
     padding: 16px;
@@ -357,6 +375,10 @@
     color: var(--login-ink);
     background: #f6c85f;
     font-size: 14px;
+  }
+
+  .change-password-card {
+    padding: 30px 26px;
   }
 }
 

@@ -23,6 +23,7 @@ const {
 const { validate } = require("./middlewares/validate");
 const {
   loginSchema,
+  changePasswordSchema,
   createUserSchema,
   updateUserSchema,
   createProductSchema,
@@ -166,16 +167,39 @@ app.post(
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword,
+      },
     });
   },
 );
 
 // rota para validar token e obter usuário atual
 app.get("/auth/me", authenticate, async (req, res) => {
-  const user = req.user; // preenchido pelo middleware authenticate
-  res.json({ user: { id: user.id, name: user.name, role: user.role } });
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { id: true, name: true, role: true, mustChangePassword: true },
+  });
+  res.json({ user });
 });
+
+app.put(
+  "/auth/change-password",
+  authenticate,
+  validate(changePasswordSchema),
+  async (req, res) => {
+    const password = await hashPassword(req.body.password);
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { password, mustChangePassword: false },
+      select: { id: true, name: true, role: true, mustChangePassword: true },
+    });
+    res.json({ user });
+  },
+);
 
 
 // ============================================================
@@ -283,20 +307,31 @@ app.post(
   authorize(),
   validate(createUserSchema),
   async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, mustChangePassword } = req.body;
     const hashed = await hashPassword(password);
 
     const user = await prisma.user.create({
-      data: { name, email, password: hashed, role },
+      data: { name, email, password: hashed, role, mustChangePassword },
     });
 
-    res.status(201).json({ id: user.id, name: user.name, role: user.role });
+    res.status(201).json({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    });
   },
 );
 
 app.get("/users", authenticate, authorize(), async (req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      mustChangePassword: true,
+    },
   });
   res.json(users);
 });
@@ -308,10 +343,10 @@ app.put(
   validate(updateUserSchema),
   async (req, res) => {
     const { id } = req.params;
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, mustChangePassword } = req.body;
 
     try {
-      const data = { name, email, role };
+      const data = { name, email, role, mustChangePassword };
       if (password) {
         data.password = await hashPassword(password);
       }

@@ -106,7 +106,9 @@ export function LoginPage() {
     setLoading(true);
     try {
       const loggedUser = await login(email, password);
-      if (returnTo) {
+      if (loggedUser.mustChangePassword) {
+        navigate("/change-password", { replace: true });
+      } else if (returnTo) {
         navigate(returnTo);
       } else {
         navigate(loggedUser.role === "ADMIN" ? "/" : "/products");

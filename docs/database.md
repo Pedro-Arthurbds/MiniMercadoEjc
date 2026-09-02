@@ -69,6 +69,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  mustChangePassword Boolean @default(false)
   role      Role
   createdAt DateTime @default(now())
 
@@ -78,7 +79,7 @@ model User {
 }
 ```
 
-Cada usuário possui um perfil, que define o que pode fazer na aplicação.
+Cada usuário possui um perfil, que define o que pode fazer na aplicação. O campo `mustChangePassword` indica que a senha atual é provisória e deve ser trocada no primeiro acesso.
 
 ### Command
 

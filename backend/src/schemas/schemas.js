@@ -6,11 +6,16 @@ const loginSchema = z.object({
   password: z.string().min(1, "Senha obrigatória"),
 });
 
+const changePasswordSchema = z.object({
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+});
+
 // ── Usuários ─────────────────────────────────────────────────
 const createUserSchema = z.object({
   name: z.string().trim().min(1, "Nome obrigatório"),
   email: z.string().trim().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  mustChangePassword: z.boolean().default(false),
   role: z.enum(["ADMIN", "MINIMERCADO", "SECRETARIA"], {
     errorMap: () => ({ message: "Role inválida" }),
   }),
@@ -25,6 +30,7 @@ const updateUserSchema = z.object({
     .min(6, "Senha deve ter no mínimo 6 caracteres")
     .optional()
     .or(z.literal("")),
+  mustChangePassword: z.boolean().default(false),
   role: z.enum(["ADMIN", "MINIMERCADO", "SECRETARIA"], {
     errorMap: () => ({ message: "Role inválida" }),
   }),
@@ -84,6 +90,7 @@ const createPasswordResetRequestSchema = z.object({
 
 module.exports = {
   loginSchema,
+  changePasswordSchema,
   createUserSchema,
   updateUserSchema,
   createProductSchema,

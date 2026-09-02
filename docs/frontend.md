@@ -20,6 +20,7 @@ A organização principal está em frontend/src:
 - `/commands`: listagem e criação de comandas
 - `/commands/:id`: detalhes de uma comanda
 - `/users`: gestão de usuários
+- `/change-password`: troca obrigatória de senha no primeiro acesso
 - `/c/:code`: visualização pública de uma comanda
 
 ## Autenticação no frontend
@@ -38,6 +39,8 @@ O frontend também usa o contexto de autenticação para controlar o que cada pe
 - ADMIN: tem acesso à gestão de usuários e à visão geral do sistema
 - MINIMERCADO: controla estoque, vendas e comandas
 - SECRETARIA: pode criar e acompanhar comandas
+
+Na criação ou edição de um usuário, o administrador pode marcar a opção de troca de senha no primeiro acesso. Quando marcada, a pessoa é direcionada para `/change-password` após o login e só acessa o restante do sistema depois de cadastrar sua senha pessoal.
 
 ## Páginas principais
 

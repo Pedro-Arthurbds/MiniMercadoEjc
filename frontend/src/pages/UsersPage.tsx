@@ -20,6 +20,7 @@ type User = {
   name: string;
   email: string;
   role: Role;
+  mustChangePassword: boolean;
 };
 
 const roleLabels: Record<Role, string> = {
@@ -54,6 +55,7 @@ export function UsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("MINIMERCADO");
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
@@ -89,6 +91,7 @@ export function UsersPage() {
     setEmail("");
     setPassword("");
     setRole("MINIMERCADO");
+    setMustChangePassword(false);
     setEditingUser(null);
   }
 
@@ -107,6 +110,7 @@ export function UsersPage() {
     setEmail(u.email);
     setPassword("");
     setRole(u.role);
+    setMustChangePassword(u.mustChangePassword);
     setShowForm(true);
   }
 
@@ -142,12 +146,23 @@ export function UsersPage() {
     setSaving(true);
     try {
       if (editingUser) {
-        const payload: Record<string, unknown> = { name, email, role };
+        const payload: Record<string, unknown> = {
+          name,
+          email,
+          role,
+          mustChangePassword,
+        };
         if (password) payload.password = password;
         await api.put(`/users/${editingUser.id}`, payload);
         toast.success("Usuário atualizado");
       } else {
-        await api.post("/users", { name, email, password, role });
+        await api.post("/users", {
+          name,
+          email,
+          password,
+          role,
+          mustChangePassword,
+        });
         toast.success("Usuário criado com sucesso");
       }
       resetForm();
@@ -346,6 +361,16 @@ export function UsersPage() {
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
+
+                <label className="sm:col-span-2 flex items-center gap-3 text-sm text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mustChangePassword}
+                    onChange={(e) => setMustChangePassword(e.target.checked)}
+                    className="h-4 w-4 accent-indigo-500"
+                  />
+                  Solicitar troca de senha no primeiro acesso
+                </label>
 
                 <div className="sm:col-span-2 flex gap-3">
                   <button
