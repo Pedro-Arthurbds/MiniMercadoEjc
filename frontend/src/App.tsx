@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "./App.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
@@ -7,6 +8,7 @@ import { ProductsPage } from "./pages/ProductsPage";
 import { CommandsPage } from "./pages/CommandsPage";
 import { CommandDetailsPage } from "./pages/CommandDetailsPage";
 import { UsersPage } from "./pages/UsersPage";
+import { ReportsPage } from "./pages/ReportsPage";
 import { PublicCommandPage } from "./pages/PublicCommandPage";
 
 export function App() {
@@ -53,6 +55,14 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={[]}>
                 <UsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={[]}>
+                <ReportsPage />
               </ProtectedRoute>
             }
           />

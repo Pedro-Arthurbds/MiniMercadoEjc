@@ -17,6 +17,10 @@ import {
   FaReceipt,
   FaCheckCircle,
   FaClock,
+  FaPen,
+  FaTrash,
+  FaCheck,
+  FaTimes,
 } from "react-icons/fa";
 import QRCode from "qrcode";
 
@@ -60,10 +64,12 @@ function ItemRow({
   item,
   canManage,
   onTogglePaid,
+  onRemove,
 }: {
   item: CommandItem;
   canManage: boolean;
   onTogglePaid: (item: CommandItem) => void;
+  onRemove: (item: CommandItem) => void;
 }) {
   const subtotal = item.product.price * item.quantity;
   return (
@@ -112,16 +118,25 @@ function ItemRow({
         </span>
 
         {canManage && (
-          <button
-            onClick={() => onTogglePaid(item)}
-            className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 border ${
-              item.paid
-                ? "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
-                : "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
-            }`}
-          >
-            {item.paid ? "Desfazer" : "Pago ✓"}
-          </button>
+          <>
+            <button
+              onClick={() => onTogglePaid(item)}
+              className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 border ${
+                item.paid
+                  ? "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  : "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+              }`}
+            >
+              {item.paid ? "Desfazer" : "Pago ✓"}
+            </button>
+            <button
+              onClick={() => onRemove(item)}
+              title="Remover item"
+              className="text-xs font-bold w-8 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 border border-rose-200 text-rose-500 bg-white hover:bg-rose-50"
+            >
+              <FaTrash className="text-[11px]" />
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -157,6 +172,99 @@ function QuantitySelector({
       >
         <FaPlus className="text-[10px]" />
       </button>
+    </div>
+  );
+}
+
+// ─── Customer Name Editor ─────────────────────────────────────────────────────
+
+function CustomerNameEditor({
+  customer,
+  canEdit,
+  saving,
+  error,
+  onSave,
+}: {
+  customer: string;
+  canEdit: boolean;
+  saving: boolean;
+  error: string;
+  onSave: (name: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(customer);
+
+  useEffect(() => {
+    setValue(customer);
+  }, [customer]);
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+          {customer}
+        </h1>
+        {canEdit && (
+          <button
+            onClick={() => setEditing(true)}
+            title="Renomear comanda"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition shrink-0"
+          >
+            <FaPen className="text-xs" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  async function handleConfirm() {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    await onSave(trimmed);
+    setEditing(false);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleConfirm();
+            if (e.key === "Escape") {
+              setValue(customer);
+              setEditing(false);
+            }
+          }}
+          className="text-xl sm:text-2xl font-black text-slate-900 leading-tight border-b-2 border-indigo-400 focus:outline-none bg-transparent px-0.5 py-0.5 min-w-0 flex-1"
+        />
+        <button
+          onClick={() => void handleConfirm()}
+          disabled={saving || !value.trim()}
+          title="Salvar"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition shrink-0"
+        >
+          <FaCheck className="text-xs" />
+        </button>
+        <button
+          onClick={() => {
+            setValue(customer);
+            setEditing(false);
+          }}
+          title="Cancelar"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 transition shrink-0"
+        >
+          <FaTimes className="text-xs" />
+        </button>
+      </div>
+      {error && (
+        <p className="text-xs font-semibold text-rose-500 mt-1.5">
+          ⚠ {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -350,6 +458,8 @@ export function CommandDetailsPage() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [search, setSearch] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState("");
 
   const [mobileTab, setMobileTab] = useState<"items" | "catalog">("items");
 
@@ -414,6 +524,37 @@ export function CommandDetailsPage() {
     }
   }
 
+  async function handleRemoveItem(item: CommandItem) {
+    const confirmed = window.confirm(
+      `Remover "${item.product.name}" da comanda? O estoque será devolvido.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/command-items/${item.id}`);
+      await Promise.all([loadCommand(), loadProducts()]);
+    } catch (err: any) {
+      const msg: string =
+        err?.response?.data?.error ?? "Erro ao remover item.";
+      window.alert(msg);
+    }
+  }
+
+  async function handleSaveCustomerName(name: string) {
+    try {
+      setSavingName(true);
+      setNameError("");
+      await api.patch(`/commands/${id}`, { customer: name });
+      await loadCommand();
+    } catch (err: any) {
+      const msg: string =
+        err?.response?.data?.error ?? "Erro ao renomear comanda.";
+      setNameError(msg);
+    } finally {
+      setSavingName(false);
+    }
+  }
+
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
@@ -472,6 +613,7 @@ export function CommandDetailsPage() {
                 item={item}
                 canManage={canManageItems}
                 onTogglePaid={handleTogglePaid}
+                onRemove={handleRemoveItem}
               />
             ))}
           </div>
@@ -658,9 +800,13 @@ export function CommandDetailsPage() {
                   </span>
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-                  {command.customer}
-                </h1>
+                <CustomerNameEditor
+                  customer={command.customer}
+                  canEdit={canManageItems}
+                  saving={savingName}
+                  error={nameError}
+                  onSave={handleSaveCustomerName}
+                />
 
                 <div className="text-xs font-medium text-slate-400 mt-2 space-y-0.5">
                   <p>

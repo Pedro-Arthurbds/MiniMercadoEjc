@@ -15,6 +15,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/password-reset-requests': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
       '/users': {
         target: 'http://localhost:3333',
         changeOrigin: true,
@@ -41,6 +46,11 @@ export default defineConfig({
         secure: false,
       },
       '/c': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/audit-logs': {
         target: 'http://localhost:3333',
         changeOrigin: true,
         secure: false,

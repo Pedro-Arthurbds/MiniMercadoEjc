@@ -14,9 +14,10 @@ import {
   FaCircle,
   FaPlus,
   FaLock,
+  FaWarehouse,
 } from "react-icons/fa";
 
-type Product = { id: number; name: string; stock: number };
+type Product = { id: number; name: string; stock: number; price: number };
 type CommandItem = {
   id: number;
   quantity: number;
@@ -165,17 +166,20 @@ export function DashboardPage() {
 
   const closedCommands = commands.filter((c) => c.closed);
   const openCommands = commands.filter((c) => !c.closed);
-  const totalRevenue = commands.reduce((a, c) => a + c.total, 0);
   const totalArrecadado = closedCommands.reduce((a, c) => a + c.total, 0);
   const totalEmAberto = openCommands.reduce((a, c) => a + c.total, 0);
   const percentualFechadas =
     commands.length > 0 ? (closedCommands.length / commands.length) * 100 : 0;
-  const ticketMedio = commands.length > 0 ? totalRevenue / commands.length : 0;
 
   const criticalStock = products
     .filter((p) => p.stock <= 10)
     .sort((a, b) => a.stock - b.stock)
     .slice(0, 5);
+
+  const valorEstoque = products.reduce(
+    (a, p) => a + p.price * p.stock,
+    0,
+  );
 
   const ranking: Record<string, number> = {};
   commands.forEach((c) =>
@@ -256,10 +260,10 @@ export function DashboardPage() {
               badge={{ label: "Pendente", positive: false }}
             />
             <StatCard
-              title="Ticket Médio"
-              value={`R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              subtitle="Por comanda"
-              icon={<FaClipboardList />}
+              title="Valor em Estoque"
+              value={`R$ ${valorEstoque.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              subtitle="Custo total dos produtos"
+              icon={<FaWarehouse />}
               accent="bg-sky-500"
             />
             <StatCard

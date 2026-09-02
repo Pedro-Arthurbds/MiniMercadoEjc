@@ -57,6 +57,10 @@ const createCommandSchema = z.object({
   customer: z.string().trim().min(1, "Nome do cliente obrigatório"),
 });
 
+const updateCommandSchema = z.object({
+  customer: z.string().trim().min(1, "Nome do cliente obrigatório"),
+});
+
 const createCommandItemSchema = z.object({
   commandId: z.coerce.number().int().positive("Comanda inválida"),
   productId: z.coerce.number().int().positive("Produto inválido"),
@@ -73,6 +77,11 @@ const updatePaidSchema = z.object({
   }),
 });
 
+// ── Esqueci a senha ──────────────────────────────────────────
+const createPasswordResetRequestSchema = z.object({
+  email: z.string().trim().email("Email inválido"),
+});
+
 module.exports = {
   loginSchema,
   createUserSchema,
@@ -81,6 +90,8 @@ module.exports = {
   updateProductSchema,
   createSaleSchema,
   createCommandSchema,
+  updateCommandSchema,
   createCommandItemSchema,
   updatePaidSchema,
+  createPasswordResetRequestSchema,
 };

@@ -29,12 +29,32 @@ const {
   updateProductSchema,
   createSaleSchema,
   createCommandSchema,
+  updateCommandSchema,
   createCommandItemSchema,
   updatePaidSchema,
+  createPasswordResetRequestSchema,
 } = require("./schemas/schemas");
 
 const prisma = new PrismaClient();
 const app = express();
+
+// ─── Auditoria ──────────────────────────────────────────────────────────────
+// Registra toda alteração relevante feita no sistema (quem fez, o quê, quando).
+// Nunca deve derrubar a rota principal caso falhe — só loga o erro.
+async function logAudit({ action, userId, commandId, details }) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        action,
+        userId: userId ?? null,
+        commandId: commandId ?? null,
+        details: JSON.stringify(details ?? {}),
+      },
+    });
+  } catch (error) {
+    console.log("Erro ao registrar auditoria:", error);
+  }
+}
 
 const isProduction = process.env.NODE_ENV === "production";
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
@@ -161,6 +181,101 @@ app.get("/auth/me", authenticate, async (req, res) => {
 // ============================================================
 //  ROTAS DE USUÁRIOS  (/users) — apenas ADMIN
 // ============================================================
+
+// ============================================================
+//  ESQUECI A SENHA (/password-reset-requests)
+//  Sem envio de e-mail: só registra o pedido para o ADMIN ver
+//  na tela de Usuários e redefinir manualmente.
+// ============================================================
+
+// Pública — qualquer um pode pedir. Nunca revela se o e-mail existe
+// ou não no sistema (evita enumeração de contas).
+app.post(
+  "/password-reset-requests",
+  validate(createPasswordResetRequestSchema),
+  async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      const request = await prisma.passwordResetRequest.create({
+        data: { email },
+      });
+
+      const matchingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+
+      await logAudit({
+        action: "PASSWORD_RESET_REQUESTED",
+        userId: matchingUser?.id ?? null,
+        details: { email, requestId: request.id },
+      });
+
+      res.status(201).json({
+        message:
+          "Se esse e-mail estiver cadastrado, um administrador foi avisado e vai te ajudar em breve.",
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: "Erro ao registrar solicitação" });
+    }
+  },
+);
+
+// Lista de pedidos — só ADMIN vê (mesma tela de Usuários)
+app.get(
+  "/password-reset-requests",
+  authenticate,
+  authorize(),
+  async (req, res) => {
+    try {
+      const requests = await prisma.passwordResetRequest.findMany({
+        include: {
+          resolvedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      res.json(requests);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: "Erro ao buscar solicitações" });
+    }
+  },
+);
+
+// Marca como resolvida — o ADMIN já deve ter redefinido a senha
+// manualmente na tela de Usuários antes de clicar nisso.
+app.put(
+  "/password-reset-requests/:id/resolve",
+  authenticate,
+  authorize(),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const request = await prisma.passwordResetRequest.update({
+        where: { id: Number(id) },
+        data: {
+          status: "RESOLVED",
+          resolvedAt: new Date(),
+          resolvedByUserId: req.user.id,
+        },
+      });
+
+      await logAudit({
+        action: "PASSWORD_RESET_RESOLVED",
+        userId: req.user.id,
+        details: { email: request.email, requestId: request.id },
+      });
+
+      res.json(request);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: "Erro ao resolver solicitação" });
+    }
+  },
+);
 
 app.post(
   "/users",
@@ -369,6 +484,13 @@ app.post(
         },
       });
 
+      await logAudit({
+        action: "COMMAND_OPENED",
+        userId: request.user.id,
+        commandId: command.id,
+        details: { customer },
+      });
+
       response.status(201).json(command);
     } catch (error) {
       console.log(error);
@@ -454,6 +576,18 @@ app.post(
         data: { total: { increment: subtotal } },
       });
 
+      await logAudit({
+        action: "ITEM_ADDED",
+        userId: request.user.id,
+        commandId,
+        details: {
+          product: product.name,
+          quantity,
+          unitPrice: product.price,
+          subtotal,
+        },
+      });
+
       response.status(201).json(item);
     } catch (error) {
       console.log(error);
@@ -528,6 +662,45 @@ app.get("/commands/:id", authenticate, async (request, response) => {
   }
 });
 
+// Renomear comanda (editar nome do cliente/mesa)
+app.patch(
+  "/commands/:id",
+  authenticate,
+  authorize("MINIMERCADO"),
+  validate(updateCommandSchema),
+  async (request, response) => {
+    try {
+      const { id } = request.params;
+      const { customer } = request.body;
+
+      const existing = await prisma.command.findUnique({
+        where: { id: Number(id) },
+      });
+
+      if (!existing) {
+        return response.status(404).json({ error: "Comanda não encontrada" });
+      }
+
+      const command = await prisma.command.update({
+        where: { id: Number(id) },
+        data: { customer },
+      });
+
+      await logAudit({
+        action: "COMMAND_RENAMED",
+        userId: request.user.id,
+        commandId: command.id,
+        details: { from: existing.customer, to: customer },
+      });
+
+      response.json(command);
+    } catch (error) {
+      console.log(error);
+      response.status(500).json({ error: "Erro ao renomear comanda" });
+    }
+  },
+);
+
 app.put(
   "/commands/:id/close",
   authenticate,
@@ -543,6 +716,14 @@ app.put(
         closedByUserId: req.user.id,
       },
     });
+
+    await logAudit({
+      action: "COMMAND_CLOSED",
+      userId: req.user.id,
+      commandId: command.id,
+      details: { customer: command.customer, total: command.total },
+    });
+
     res.json(command);
   },
 );
@@ -580,6 +761,19 @@ app.delete(
         where: { id: Number(id) },
       });
 
+      await logAudit({
+        action: "ITEM_REMOVED",
+        userId: request.user.id,
+        commandId: item.commandId,
+        details: {
+          product: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.product.price,
+          subtotal,
+          stockRestored: item.quantity,
+        },
+      });
+
       response.json({ message: "Item removido" });
     } catch (error) {
       console.log(error);
@@ -610,6 +804,18 @@ app.patch(
       const item = await prisma.commandItem.update({
         where: { id: Number(id) },
         data: { paid: !!paid },
+        include: { product: true },
+      });
+
+      await logAudit({
+        action: "ITEM_PAID_TOGGLED",
+        userId: req.user.id,
+        commandId: item.commandId,
+        details: {
+          product: item.product.name,
+          quantity: item.quantity,
+          paid: item.paid,
+        },
       });
 
       return res.json(item);
@@ -619,6 +825,56 @@ app.patch(
     }
   },
 );
+
+// Log de auditoria — histórico de todas as alterações do sistema.
+// Restrito a ADMIN (mesmo padrão de acesso de /users).
+app.get("/audit-logs", authenticate, authorize(), async (req, res) => {
+  try {
+    const { userId, action, commandId, from, to } = req.query;
+
+    const where = {};
+
+    if (userId) where.userId = Number(userId);
+    if (action) where.action = String(action);
+    if (commandId) where.commandId = Number(commandId);
+
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(String(from));
+      if (to) {
+        const toDate = new Date(String(to));
+        toDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = toDate;
+      }
+    }
+
+    const logs = await prisma.auditLog.findMany({
+      where,
+      include: {
+        user: { select: { id: true, name: true, role: true } },
+        command: { select: { id: true, customer: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 1000,
+    });
+
+    res.json(
+      logs.map((log) => ({
+        ...log,
+        details: (() => {
+          try {
+            return JSON.parse(log.details);
+          } catch {
+            return {};
+          }
+        })(),
+      })),
+    );
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro ao buscar log de auditoria" });
+  }
+});
 
 // Inicia o servidor
 const PORT = process.env.PORT || 3333;

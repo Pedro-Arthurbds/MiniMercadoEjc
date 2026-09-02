@@ -1,9 +1,17 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Navbar } from "../components/Navbar";
 import { api } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { FaUserPlus, FaUsers, FaEdit, FaTrash } from "react-icons/fa";
+import {
+  FaUserPlus,
+  FaUsers,
+  FaEdit,
+  FaTrash,
+  FaKey,
+  FaCheck,
+} from "react-icons/fa";
 
 type Role = "ADMIN" | "MINIMERCADO" | "SECRETARIA";
 
@@ -26,6 +34,14 @@ const roleColors: Record<Role, string> = {
   SECRETARIA: "bg-indigo-100 text-indigo-700",
 };
 
+type ResetRequest = {
+  id: number;
+  email: string;
+  status: "PENDING" | "RESOLVED";
+  createdAt: string;
+  resolvedBy: { id: number; name: string } | null;
+};
+
 export function UsersPage() {
   const { user: loggedUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -38,6 +54,18 @@ export function UsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("MINIMERCADO");
+
+  const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+
+  async function loadResetRequests() {
+    try {
+      const r = await api.get<ResetRequest[]>("/password-reset-requests");
+      setResetRequests(Array.isArray(r.data) ? r.data : []);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   async function loadUsers() {
     try {
@@ -53,6 +81,7 @@ export function UsersPage() {
 
   useEffect(() => {
     void loadUsers();
+    void loadResetRequests();
   }, []);
 
   function resetForm() {
@@ -79,6 +108,33 @@ export function UsersPage() {
     setPassword("");
     setRole(u.role);
     setShowForm(true);
+  }
+
+  function handleResetFromRequest(request: ResetRequest) {
+    const matchingUser = users.find(
+      (u) => u.email.toLowerCase() === request.email.toLowerCase(),
+    );
+    if (matchingUser) {
+      handleEditClick(matchingUser);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      toast.error("Nenhum usuário cadastrado com esse e-mail");
+    }
+  }
+
+  async function handleResolveRequest(request: ResetRequest) {
+    setResolvingId(request.id);
+    try {
+      await api.put(`/password-reset-requests/${request.id}/resolve`);
+      toast.success("Solicitação marcada como resolvida");
+      void loadResetRequests();
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ?? "Erro ao resolver solicitação";
+      toast.error(msg);
+    } finally {
+      setResolvingId(null);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -165,6 +221,62 @@ export function UsersPage() {
               {showForm && !editingUser ? "Cancelar" : "Novo usuário"}
             </button>
           </div>
+
+          {resetRequests.some((r) => r.status === "PENDING") && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 sm:p-6 mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <FaKey className="text-amber-500 text-sm" />
+                <h2 className="text-sm font-bold text-amber-800">
+                  Pedidos de redefinição de senha
+                </h2>
+                <span className="text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                  {resetRequests.filter((r) => r.status === "PENDING").length}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {resetRequests
+                  .filter((r) => r.status === "PENDING")
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white rounded-xl px-4 py-3 border border-amber-100"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {r.email}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Pedido em{" "}
+                          {new Date(r.createdAt).toLocaleString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleResetFromRequest(r)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition active:scale-95"
+                        >
+                          <FaKey className="text-[10px]" />
+                          Redefinir senha
+                        </button>
+                        <button
+                          onClick={() => void handleResolveRequest(r)}
+                          disabled={resolvingId === r.id}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 transition active:scale-95"
+                        >
+                          <FaCheck className="text-[10px]" />
+                          Marcar resolvida
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {showForm && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 mb-6">

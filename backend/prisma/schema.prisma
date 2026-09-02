@@ -27,15 +27,17 @@ model Sale {
 }
 
 model User {
-  id             Int           @id @default(autoincrement())
-  name           String
-  email          String        @unique
-  password       String
-  role           Role
-  createdAt      DateTime      @default(now())
-  closedCommands Command[]     @relation("ClosedCommands")
-  openedCommands Command[]     @relation("OpenedCommands")
-  addedItems     CommandItem[] @relation("AddedItems")
+  id                     Int                     @id @default(autoincrement())
+  name                   String
+  email                  String                  @unique
+  password               String
+  role                   Role
+  createdAt              DateTime                @default(now())
+  closedCommands         Command[]               @relation("ClosedCommands")
+  openedCommands         Command[]               @relation("OpenedCommands")
+  addedItems             CommandItem[]           @relation("AddedItems")
+  auditLogs              AuditLog[]
+  resolvedPasswordResets PasswordResetRequest[]
 }
 
 model Command {
@@ -51,6 +53,7 @@ model Command {
   closedBy       User?         @relation("ClosedCommands", fields: [closedByUserId], references: [id])
   openedBy       User?         @relation("OpenedCommands", fields: [openedByUserId], references: [id])
   items          CommandItem[]
+  auditLogs      AuditLog[]
 }
 
 model CommandItem {
@@ -70,4 +73,37 @@ enum Role {
   ADMIN
   MINIMERCADO
   SECRETARIA
+}
+
+// Registro de auditoria — toda alteração relevante feita no sistema
+// (item adicionado/removido, comanda aberta/renomeada/fechada, pagamento).
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+  userId    Int?
+  commandId Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  command   Command? @relation(fields: [commandId], references: [id])
+
+  @@index([userId])
+  @@index([commandId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Pedido de "esqueci a senha" — sem envio de e-mail. Fica pendente até um
+// ADMIN ver na tela de Usuários e redefinir a senha manualmente.
+model PasswordResetRequest {
+  id               Int       @id @default(autoincrement())
+  email            String
+  status           String    @default("PENDING") // PENDING | RESOLVED
+  createdAt        DateTime  @default(now())
+  resolvedAt       DateTime?
+  resolvedByUserId Int?
+  resolvedBy       User?     @relation(fields: [resolvedByUserId], references: [id])
+
+  @@index([status])
+  @@index([email])
 }

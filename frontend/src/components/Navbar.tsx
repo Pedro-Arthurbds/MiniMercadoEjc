@@ -8,7 +8,7 @@ export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout, hasRole, can } = useAuth();
 
   function isActive(path: string) {
     return location.pathname === path;
@@ -50,6 +50,7 @@ export function Navbar() {
               <NavLink to="/products">Produtos</NavLink>
               <NavLink to="/commands">Comandas</NavLink>
               {hasRole() && <NavLink to="/users">Usuários</NavLink>}
+              {can.viewReports && <NavLink to="/reports">Relatórios</NavLink>}
             </div>
           </div>
 
@@ -88,6 +89,7 @@ export function Navbar() {
             <NavLink to="/products">Produtos</NavLink>
             <NavLink to="/commands">Comandas</NavLink>
             {hasRole() && <NavLink to="/users">Usuários</NavLink>}
+            {can.viewReports && <NavLink to="/reports">Relatórios</NavLink>}
 
             {user && (
               <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100">
