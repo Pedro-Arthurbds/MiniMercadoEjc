@@ -1,14 +1,51 @@
 /* eslint-disable react-hooks/static-components */
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { FaBell, FaBars, FaTimes } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
+import { api } from "../services/api";
+
+type ResetRequest = {
+  status: "PENDING" | "RESOLVED";
+};
 
 export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [pendingResetCount, setPendingResetCount] = useState(0);
   const { user, logout, hasRole, can } = useAuth();
+
+  useEffect(() => {
+    if (!hasRole()) {
+      setPendingResetCount(0);
+      return;
+    }
+
+    let mounted = true;
+    async function loadPendingResetCount() {
+      try {
+        const response = await api.get<ResetRequest[]>(
+          "/password-reset-requests",
+        );
+        if (mounted) {
+          setPendingResetCount(
+            response.data.filter((request) => request.status === "PENDING")
+              .length,
+          );
+        }
+      } catch {
+        if (mounted) setPendingResetCount(0);
+      }
+    }
+
+    void loadPendingResetCount();
+    const intervalId = window.setInterval(loadPendingResetCount, 30000);
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [hasRole]);
 
   function isActive(path: string) {
     return location.pathname === path;
@@ -61,6 +98,19 @@ export function Navbar() {
                   {user.name} <span className="text-gray-300">·</span>{" "}
                   <span className="text-xs text-gray-400">{user.role}</span>
                 </span>
+                {hasRole() && pendingResetCount > 0 && (
+                  <Link
+                    to="/users"
+                    title="Solicitações de troca de senha pendentes"
+                    aria-label={`${pendingResetCount} solicitações de troca de senha pendentes`}
+                    className="relative text-amber-500 hover:text-amber-600"
+                  >
+                    <FaBell />
+                    <span className="absolute -right-3 -top-3 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                      {pendingResetCount > 9 ? "9+" : pendingResetCount}
+                    </span>
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="text-sm font-semibold text-rose-500 hover:text-rose-600"
@@ -93,7 +143,22 @@ export function Navbar() {
 
             {user && (
               <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100">
-                <span className="text-sm text-gray-500">{user.name}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500">{user.name}</span>
+                  {hasRole() && pendingResetCount > 0 && (
+                    <Link
+                      to="/users"
+                      onClick={() => setOpen(false)}
+                      title="Solicitações de troca de senha pendentes"
+                      className="relative text-amber-500"
+                    >
+                      <FaBell />
+                      <span className="absolute -right-3 -top-3 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                        {pendingResetCount > 9 ? "9+" : pendingResetCount}
+                      </span>
+                    </Link>
+                  )}
+                </div>
                 <button
                   onClick={handleLogout}
                   className="text-sm font-semibold text-rose-500 hover:text-rose-600"
