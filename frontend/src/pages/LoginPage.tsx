@@ -128,8 +128,6 @@ export function LoginPage() {
           </div>
           <div className="login-brand-copy">
             <p className="login-kicker">Mini Mercado</p>
-            <h1>Abasteça bons encontros.</h1>
-            <p>Seu mercado, suas comandas e seu time em um só lugar.</p>
           </div>
           <div className="login-brand-footer">
             <span className="login-footer-line" />
